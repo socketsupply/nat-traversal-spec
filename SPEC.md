@@ -272,6 +272,8 @@ Some NATs provide mechanisms for being configured directly. This should be the f
 
 > TODO add copy from old research repo
 
+---
+
 </details>
 
 <details>
@@ -314,6 +316,8 @@ struct response {
 ```
 
 A mapping renewal packet is formatted identically to an original mapping request; from the point of view of the client, it is a renewal of an existing mapping, but from the point of view of the freshly rebooted NAT gateway, it appears as a new mapping request.
+
+---
 
 </details>
 
