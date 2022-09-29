@@ -59,18 +59,18 @@ enum Nat {
   Easy,
   Hard,
   Static
-}
+};
 ```
 
 ### PeerStates
 
 ```c
 struct PeerStates {
-  float Forgotten = 5,
-  float Missing = 3.0,
-  float Inactive = 1.5,
-  float Active = 0.0
-}
+  float Forgotten = 5;
+  float Missing = 3.0;
+  float Inactive = 1.5;
+  float Active = 0.0;
+};
 ```
 
 
@@ -78,51 +78,51 @@ struct PeerStates {
 
 ```c
 struct PeerIdentity {
-  string id, // a unique identifier for this peer
-  string address, // a valid IP address
-  uint port // a valid port number
-}
+  string id; // a unique identifier for this peer
+  string address; // a valid IP address
+  uint port; // a valid port number
+};
 ```
 
 ### Config
 
 ```c
 struct Config {
-  localPort: LOCAL_PORT,
-  testPort: TEST_PORT,
-  bdp: BDP,
-  nat: null,
-  bdpMaxPackets: BDP_MAX_PACKETS,
-  connecting: CONNECTING_MAX_TIME,
-  keepAlive: KEEP_ALIVE_TIMEOUT,
-  introducerA: PeerIdentity iA,
-  introducerB: PeerIdentity iB
-}
+  localPort: LOCAL_PORT;
+  testPort: TEST_PORT;
+  bdp: BDP;
+  nat: null;
+  bdpMaxPackets: BDP_MAX_PACKETS;
+  connecting: CONNECTING_MAX_TIME;
+  keepAlive: KEEP_ALIVE_TIMEOUT;
+  introducerA: PeerIdentity iA;
+  introducerB: PeerIdentity iB;
+};
 ```
 
 ### ArgsAddPeer
 
 ```c
 struct ArgsAddPeer {
-  string id, // the unique identity of the peer
-  string address, // the ip address of the peer
-  uint port, // the numeric port of the peer
-  Nat nat, // the nat type of the peer
-  uint outport, // the outgoing ephemeral port of the peer
-  uint restart, // timestamp of the last restart
-  uint timestamp,
-  bool isIntroducer // if this peer static
-}
+  string id; // the unique identity of the peer
+  string address; // the ip address of the peer
+  uint port; // the numeric port of the peer
+  Nat nat; // the nat type of the peer
+  uint outport; // the outgoing ephemeral port of the peer
+  uint restart; // timestamp of the last restart
+  uint timestamp;
+  bool isIntroducer; // if this peer static
+};
 ```
 
 ### PongState
 
 ```c
 struct PongState {
-  uint timestamp,
-  string address, // the ip address of the peer
-  uint port, // the numeric port of the peer
-}
+  uint timestamp;
+  string address; // the ip address of the peer
+  uint port; // the numeric port of the peer
+};
 ```
 
 ### ArgsBind
@@ -130,7 +130,7 @@ struct PongState {
 ```c
 struct ArgsBind {
 
-}
+};
 ```
 
 ### ArgsConnect
@@ -138,7 +138,7 @@ struct ArgsBind {
 ```c
 struct ArgsConnect {
 
-}
+};
 ```
 
 ## Classes
@@ -171,7 +171,7 @@ class Peer {
   void ping (ArgsPing args);
   void retryPing ();
   void timer (uint delay, uint repeat, function<void(uint timestamp)> cb);
-}
+};
 ```
 
 ## Messages
@@ -182,11 +182,11 @@ Generally sent as a "request" for a `MsgPong` message.
 
 ```c
 struct MsgPing {
-  type: "ping", // the type of the message
-  id: string, // the unique id of the sending-peer
-  nat: Nat,
-  restart: uint // a unix timestamp specifying uptime of the sending-peer
-}
+  string type = "ping"; // the type of the message
+  string id; // the unique id of the sending-peer
+  Nat nat;
+  uint restart; // a unix timestamp specifying uptime of the sending-peer
+};
 ```
 
 ### MsgPong
@@ -195,14 +195,14 @@ Generally sent as a "response" to a `MsgPing` message.
 
 ```c
 struct MsgPong {
-  type: "pong", // the type of the message
-  id: string, // the unique id of the sending-peer
-  address: string, // a string representation of the ip address of the sending-peer
-  port: uint, // a numeric representation of the port of the sending-peer
-  nat: Nat,
-  restart: uint, // a unix timestamp specifying uptime of the sending-peer
-  ts: uint // a unix timestamp specifying the time the ping message was received
-}
+  string type = "pong"; // the type of the message
+  string id; // the unique id of the sending-peer
+  string address; // a string representation of the ip address of the sending-peer
+  uint port; // a numeric representation of the port of the sending-peer
+  Nat nat;
+  uint restart; // a unix timestamp specifying uptime of the sending-peer
+  uint timestamp; a unix timestamp specifying the time the ping message was received
+};
 ```
 
 ### MsgTest
@@ -211,12 +211,12 @@ Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
 
 ```c
 struct MsgTest {
-  type: "test", // the type of the message
-  id: string, // the unique id of the sending-peer
-  address: string, // a string representation of the ip address of the sending-peer
-  port: uint, // a numeric representation of the port of the sending-peer
-  nat: Nat,
-}
+  string type = "test"; // the type of the message
+  string id; // the unique id of the sending-peer
+  string address; // a string representation of the ip address of the sending-peer
+  uint port; // a numeric representation of the port of the sending-peer
+  Nat nat;
+};
 ```
 
 ## States
@@ -242,6 +242,16 @@ This section outlines the states of the program.
 
 ### NAT Evaluation
 
+A router's routing table or firewall may drop "unsolicited" packets. So simply binding a port and waiting for connections won't work. However, a router (even one with a firewall) can be cooerced into accepting packets in a perfectly safe way. There are 3 conditions where a NAT (and Firewall) will allow inbound traffic.
+
+1) The user manually configures port forwarding/mapping.
+
+2) The NAT supports/allows a port mapping protocol (uPnP/PMP/PCP).
+
+3) The inbound traffic looks like the response to some prior outbound traffic. This technique is also known as [hole-punching][W0] and involves something like a [STUN][W3] server.
+
+Port mapping protocols, hole-punching, brute force port scanning, and relay servers in concert will provide a reliable network where the majority of communication is peer-to-peer.
+
 #### Static Nat
 
 The nat has a static IP address and does not drop unsolicited packets.
@@ -256,11 +266,46 @@ The nat assigns different (probably random) ports for every other host you commu
 
 #### Execution
 
-A router's routing table or firewall may drop "unsolicited" packets. So simply binding a port and waiting for connections won't work.
+The first step is to check if the ports can be mapped using `UPnP` or `nat-pmp`.
 
-However a router (even one with a firewall) can be cooerced into accepting packets in a perfectly safe way.
+Some NATs provide mechanisms for being configured from the application layer. These are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP). All built on UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating.
 
-A NAT check requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
+In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many librally licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
+
+UDP packets have an 8 byte header with 4 fields (`Source Port`, `Destination Port` `Length` and `Checksum`) with a maximum of 67 KB as a payload (according to RFCs [791][rfc791], [1122][rfc1122], and [2460][rfc2460]). Here are examples of the packets needed to instruct NAT-PMP/PCP on how to map addresses and ports.
+
+Earlier implementations of uPnP gained negative attention for security flaws. Many IT administrators still incorrectly assume all NAT port mapping protocols are unsafe. This is why these features are sometimes disabled.
+
+The first step is to request a port mapping from the NAT. To do this, send a UDP packet to port `5351` of the gateway's internal IP address with the [following format](https://datatracker.ietf.org/doc/html/rfc6886#section-3.3), on an interval of 250ms until it gets a response.
+
+```c
+struct request {
+  uint8_t version;
+  uint8_t opcode; 1=UDP, 2=TCP
+  uint16_t reserved; // Muust be 0 (always)
+  uint16_t internal_port;
+  uint16_t suggested_external_port; // Avoid (not consistently honored by NATs)
+  uint32_t lifetime; // The RECOMMENDED Lifetime is 7200 seconds (two hours)
+};
+```
+
+> As a security note, your protocol should be aware that some poorly implemented NATs will create both UDP and TCP maps regardless of what you ask for.
+
+```c
+struct response {
+  uint8_t version;
+  uint8_t opcode;
+  uint16_t result;
+  uint32_t epoch_time;
+  uint16_t internal_port;
+  uint16_t external_port;
+  uint32_t lifetime;
+};
+```
+
+A mapping renewal packet is formatted identically to an original mapping request; from the point of view of the client, it is a renewal of an existing mapping, but from the point of view of the freshly rebooted NAT gateway, it appears as a new mapping request.
+
+If this is unsuccessful, we will need to evalute the NAT. A NAT check requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
 - The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
@@ -316,3 +361,24 @@ This work is derived from the work of Bryan Ford (<baford@mit.edu>), Pyda Srisur
 [1]:https://lamport.azurewebsites.net/pubs/liveness.pdf
 [2]:https://pdos.csail.mit.edu/papers/p2pnat.pdf
 [3]:https://www.microsoft.com/en-us/research/uploads/prod/2018/05/book-02-08-08.pdf
+
+[W0]:https://en.wikipedia.org/wiki/UDP_hole_punching
+[W1]:https://en.wikipedia.org/wiki/Transport_layer
+[W2]:https://en.wikipedia.org/wiki/Rendezvous_protocol
+[W3]:https://en.wikipedia.org/wiki/STUN
+
+[T0]:https://tailscale.com/blog/how-nat-traversal-works
+[F0]:https://fossbytes.com/connection-oriented-vs-connection-less-connection/
+
+[B1]:https://www.bittorrent.org/beps/bep_0055.html
+[C0]:https://github.com/clostra/libutp
+[GH01]:https://github.com/libpcp/pcp
+[GH02]:https://github.com/paullouisageneau/libplum
+
+[rfc3022]:https://datatracker.ietf.org/doc/html/rfc3022
+[rfc2663]:https://datatracker.ietf.org/doc/html/rfc2663
+[rfc6886]:https://datatracker.ietf.org/doc/html/rfc6886
+[rfc6887]:https://datatracker.ietf.org/doc/html/rfc6887
+[rfc791]:https://datatracker.ietf.org/doc/html/rfc791
+[rfc1122]:https://datatracker.ietf.org/doc/html/rfc1122
+[rfc2460]:https://datatracker.ietf.org/doc/html/rfc2460
