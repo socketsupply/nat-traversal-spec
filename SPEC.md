@@ -4,6 +4,8 @@ Specify a minimal NAT traversal library for UDP.
 
 # Specification
 
+This implementation targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating.
+
 ## Constants
 
 ### `LOCAL_PORT`
@@ -266,9 +268,7 @@ The nat assigns different (probably random) ports for every other host you commu
 
 #### Execution
 
-The first step is to check if the ports can be mapped using `UPnP` or `nat-pmp`.
-
-Some NATs provide mechanisms for being configured from the application layer. These are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP). All built on UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating.
+Some NATs provide mechanisms for being configured directly. This should be the first phase of NAT traversal since its less complex than the phases that will follow. The mechanisms we want to use are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP), UDP based port mapping protocols.
 
 In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many librally licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
 
@@ -276,7 +276,7 @@ UDP packets have an 8 byte header with 4 fields (`Source Port`, `Destination Por
 
 Earlier implementations of uPnP gained negative attention for security flaws. Many IT administrators still incorrectly assume all NAT port mapping protocols are unsafe. This is why these features are sometimes disabled.
 
-The first step is to request a port mapping from the NAT. To do this, send a UDP packet to port `5351` of the gateway's internal IP address with the [following format](https://datatracker.ietf.org/doc/html/rfc6886#section-3.3), on an interval of 250ms until it gets a response.
+The first step in communicating with the NAT is to request a port mapping. To do this, send a UDP packet to port `5351` of the gateway's internal IP address with the [following format](https://datatracker.ietf.org/doc/html/rfc6886#section-3.3), on an interval of 250ms until it gets a response.
 
 ```c
 struct request {
@@ -305,7 +305,7 @@ struct response {
 
 A mapping renewal packet is formatted identically to an original mapping request; from the point of view of the client, it is a renewal of an existing mapping, but from the point of view of the freshly rebooted NAT gateway, it appears as a new mapping request.
 
-If this is unsuccessful, we will need to evalute the NAT. A NAT check requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
+If this is unsuccessful, we will need to switch strategies to "Hole Punching". For that we need to first evaluate the NAT type. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
 - The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
