@@ -9,6 +9,7 @@ This implementation targets UDP. UDP is a [message-oriented][F0] [transport laye
 ## Constants
 
 ### `LOCAL_PORT`
+
 The UDP port to bind to.
 
 ```c
@@ -24,6 +25,7 @@ const uint TEST_PORT = 3457;
 ```
 
 ### `BDP`
+
 The delay between packets sent for birthday paradox connection 10ms means 100 packets per second.
 
 ```c
@@ -31,6 +33,7 @@ const uint BDP = 10;
 ```
 
 ### `BDP_MAX_PACKETS`
+
 The maximum number of packets to use when employing the birthday paradox strategy. On average, about ~255 packets are sent per successful connection (giving up after 1000 packets
 means 97% of attempts are successful. It is necessary to give up at some point because the other side might not have done anything, or might have crashed, etc).
 
@@ -39,6 +42,7 @@ const uint BDP_MAX_PACKETS = 1000;
 ```
 
 ### `CONNECTING_MAX_TIME`
+
 The time that we expect a new connection to take. Do not start another new connection attempt within this time, even if we havn't received a packet yet.
 
 ```c
@@ -46,6 +50,7 @@ const uint CONNECTING_MAX_TIME = BDP * BDP_MAX_PACKETS;
 ```
 
 ### `KEEP_ALIVE_TIMEOUT`
+
 100 byte keepalive packet 120 times an hour 24 hours is 0.288 mb a day per peer.
 
 ```c
@@ -56,8 +61,10 @@ const uint KEEP_ALIVE_TIMEOUT = 29_000;
 
 ### `PeerId`
 
+A high entropy key, for example a ed25519 public key.
+
 ```c
-const unsigned char id[32]; // a high entropy 32 byte key, for example a ed25519 public key
+typedef uint64_t PeerId;
 ```
 
 ### `NatType`
