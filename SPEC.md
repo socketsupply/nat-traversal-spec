@@ -207,7 +207,7 @@ struct MsgPong {
 
 ### MsgTest
 
-Sent to the `testPort` of a peer as a response to a `MsgPing` message.
+Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
 
 ```c
 struct MsgTest {
@@ -265,8 +265,8 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `Config.localPor
 - The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
 - `I0` and `I1` should respond by sending `MsgPong` to `P0` and the message includes the NAT type and public IP and ephemeral port.
-- `I0` and `I1` also respond by sending a message to `P0` on the `testPort`.
-  - IF `P0` receives a message on `testPort` we know that our NAT type is Static
+- `I0` and `I1` also respond by sending a message to `P0` on the `Config.testPort`.
+  - IF `P0` receives a message on `Config.testPort` we know that our NAT type is Static
 - Finally, `P0` must calculate the nat type based on the data collected so far
 
 ### Receive `MsgPong`
@@ -300,7 +300,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 
 ### Receive `MsgTest`
 
-This message is received when an introducer sends a message to a peer's `testPort` as the result of receving a `Ping`.
+This message is received when an introducer sends a message to a peer's `Config.testPort` as the result of receving a `Ping`.
 
 #### Execution
 
