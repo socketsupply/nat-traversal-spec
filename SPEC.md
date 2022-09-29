@@ -57,17 +57,17 @@ const uint KEEP_ALIVE_TIMEOUT = 29_000;
 ### Nat
 
 ```c
-enum Nat {
+enum NatType {
   Easy,
   Hard,
   Static
 };
 ```
 
-### PeerStates
+### PeerState
 
 ```c
-struct PeerStates {
+struct PeerState {
   float Forgotten = 5;
   float Missing = 3.0;
   float Inactive = 1.5;
@@ -109,7 +109,7 @@ struct ArgsAddPeer {
   string id; // the unique identity of the peer
   string address; // the ip address of the peer
   uint port; // the numeric port of the peer
-  Nat nat; // the nat type of the peer
+  NatType natType; // the nat type of the peer
   uint outport; // the outgoing ephemeral port of the peer
   uint restart; // timestamp of the last restart
   uint timestamp;
@@ -154,7 +154,7 @@ class Peer {
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
   uint publicPort; // set when a pong is received
-  Nat nat; // this peer's Nat type
+  NatType natType; // this peer's NatType
   PongState pong; // the state of the last pong
 
   void addPeer (ArgsAddPeer args);
@@ -186,7 +186,7 @@ Generally sent as a "request" for a `MsgPong` message.
 struct MsgPing {
   string type = "ping"; // the type of the message
   string id; // the unique id of the sending-peer
-  Nat nat;
+  NatType natType;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
 };
 ```
@@ -201,7 +201,7 @@ struct MsgPong {
   string id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
-  Nat nat;
+  NatType natType;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
   uint timestamp; a unix timestamp specifying the time the ping message was received
 };
@@ -217,7 +217,7 @@ struct MsgTest {
   string id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
-  Nat nat;
+  NatType natType;
 };
 ```
 
@@ -240,7 +240,7 @@ This section outlines the states of the program.
       - Otherwise the peer is considered Active
     - IF there is an interface change, the NAT type is re-evaluated and the function returns
     - IF the time ellapsed is greater than a single cycle of the interval, a wakeup event is emitted
-    - IF the `Nat` type has become unknown the NAT type is re-evaluated
+    - The NAT type is not well defined, it is re-evaluated
 
 ### NAT Evaluation
 
