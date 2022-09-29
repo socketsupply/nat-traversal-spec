@@ -359,7 +359,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 - A message of type `MsgIntro` is received
   - IF the both the IDs (`MsgIntro.target`) and (`MsgIntro.id`) are known locally
     - call `Peer.connect`, specifying both `MsgIntro.target` and `MsgIntro.id`
-    - call `Peer.connect`d, specifying both `MsgIntro.id` and `MsgIntro.target`
+    - call `Peer.connect`, specifying both `MsgIntro.id` and `MsgIntro.target`
   - ELSE respond with a message of type `ErrorIntro`
 
 ### Receive `MsgTest`
