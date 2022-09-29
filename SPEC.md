@@ -109,8 +109,18 @@ struct ArgsAddPeer {
   Nat nat, // the nat type of the peer
   uint outport, // the outgoing ephemeral port of the peer
   uint restart, // timestamp of the last restart
-  uint ts, // timestamp
+  uint timestamp,
   bool isIntroducer // if this peer static
+}
+```
+
+### PongState
+
+```c
+struct PongState {
+  uint timestamp,
+  string address, // the ip address of the peer
+  uint port, // the numeric port of the peer
 }
 ```
 
@@ -141,6 +151,8 @@ class Peer {
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
   uint publicPort; // set when a pong is received
+  Nat nat; // this peer's Nat type
+  PongState pong; // the state of the last pong
 
   void addPeer (ArgsAddPeer args);
   void connect (ArgsConnect args);
@@ -280,11 +292,13 @@ TODO
 
 ### Receive `Test`
 
-This message is received when an introducer sends a message to a peer's `testPort`.
+This message is received when an introducer sends a message to a peer's `testPort` as the result of receving a `Ping`.
 
 #### Execution
 
-TODO
+- The receiving peer will
+  - update its `PongState` property.
+  - re-calcuate its nat state
 
 # Credit
 
