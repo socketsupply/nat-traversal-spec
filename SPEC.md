@@ -324,9 +324,7 @@ A mapping renewal packet is formatted identically to an original mapping request
 
 </details>
 
-If Port Mapping is unsuccessful, switch strategies to "Hole Punching".
-
-For Hole Punching, the NAT type needs to be discovered. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
+In the next phase, the NAT type needs to be discovered. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
 - The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
