@@ -165,26 +165,44 @@ class Peer {
 
 ### Ping
 
+Generally sent as a "request" for a `Pong` message.
+
 ```c
 struct Ping {
-  type: string, // the type of the message
+  type: "ping", // the type of the message
   id: string, // the unique id of the sending-peer
-  nat: Nat, // the typeof the
+  nat: Nat,
   restart: uint // a unix timestamp specifying uptime of the sending-peer
 }
 ```
 
 ### Pong
 
+Generally sent as a "response" to a `Ping` message.
+
 ```c
 struct Pong {
-  type: string, // the type of the message
+  type: "pong", // the type of the message
   id: string, // the unique id of the sending-peer
   address: string, // a string representation of the ip address of the sending-peer
   port: uint, // a numeric representation of the port of the sending-peer
-  nat: Nat, // the typeof the
+  nat: Nat,
   restart: uint, // a unix timestamp specifying uptime of the sending-peer
   ts: uint // a unix timestamp specifying the time the ping message was received
+}
+```
+
+### Test
+
+Sent to the `testPort` of a peer as a response to a `Ping` message.
+
+```c
+struct Test {
+  type: "test", // the type of the message
+  id: string, // the unique id of the sending-peer
+  address: string, // a string representation of the ip address of the sending-peer
+  port: uint, // a numeric representation of the port of the sending-peer
+  nat: Nat,
 }
 ```
 
@@ -196,10 +214,10 @@ This section outlines the states of the program.
 
 #### Execution
 - An instance of the Peer class is constructed
-  - At least two UDP ports are bound, namely `.localPort` and `.staticDetectPort`
-    - Messages are parsed with JSON as the default encoding
+  - Two UDP ports are bound, namely `.localPort` and `.testPort`
+    - When a message is received it will dispatch the corresponding method.
   - An interval will poll for network interface changes
-    - if there is no `keepAlive` specified in the config the function returns
+    - IF there is no `keepAlive` specified in the config the function returns
     - An additional interval is started after `keepAlive` and repeats every `keepAlive` seconds
       - If `currentTime` - `lastPongReceived` > `keepalive` * `5`, the peer is Forgotten
       - If `currentTime` - `lastPongReceived` > `keepalive` * `3`, the peer is Missing
