@@ -132,7 +132,7 @@ struct ArgsConnect {
 
 ## Classes
 
-A peer MUST, in some way, implement at least these methods and properties. Regardless of how you implement a peer, it is difficult to demonstrate the reliability of a NAT traversal solution in the real world. So it is necessary to A. Specify a [TLA+][3] spec as well as run the code on top of a network simulation. Tests that demonstrate [`Safety`][0] and [`Liveness`][1] properties will need to override the `[init, onMessage, localAddress, timer, send]` methods and properties so that they can be run synchronously in a simulation.
+A peer MUST, in some way, implement at least these methods and properties. Regardless of how you implement a peer, it is impossible to demonstrate the reliability of this solution when deployed. So it is necessary to specify a [TLA+][3] spec as well as run the code on top of a network simulation. Tests that demonstrate [`Safety`][0] and [`Liveness`][1] properties will need to override the `[init, onMessage, localAddress, timer, send]` methods and properties so that they can be run synchronously in a simulation.
 
 ```c
 class Peer {
@@ -258,7 +258,7 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
 
 # Credit
 
-This work is derived from the work of Bryan Ford <baford@mit.edu>, Pyda Srisuresh <srisuresh@yahoo.com> and Dan Kegel <dank@kegel.com> who published ["Peer-to-Peer Communication Across Network Address Translators"][2].
+This work is derived from the work of Bryan Ford (<baford@mit.edu>), Pyda Srisuresh (<srisuresh@yahoo.com>) and Dan Kegel (<dank@kegel.com>) who published ["Peer-to-Peer Communication Across Network Address Translators"][2].
 
 [0]:https://lamport.azurewebsites.net/tla/proving-safety.pdf
 [1]:https://lamport.azurewebsites.net/pubs/liveness.pdf
