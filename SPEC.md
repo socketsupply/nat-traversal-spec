@@ -302,7 +302,7 @@ This message is received when an introducer sends a message to a peer's `testPor
 
 - The receiving peer will
   - update its `PongState` property.
-  - re-calcuate its nat state
+  - re-calculate its nat state
 
 # Credit
 
