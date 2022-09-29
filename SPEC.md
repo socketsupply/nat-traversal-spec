@@ -117,6 +117,16 @@ struct ArgsAddPeer {
 };
 ```
 
+### ArgsIntro
+
+```c
+struct ArgsIntro {
+  string id;
+  string swarm;
+  Peer intro;
+};
+```
+
 ### PongState
 
 ```c
@@ -124,22 +134,6 @@ struct PongState {
   uint timestamp;
   string address; // the ip address of the peer
   uint port; // the numeric port of the peer
-};
-```
-
-### ArgsBind
-
-```c
-struct ArgsBind {
-
-};
-```
-
-### ArgsConnect
-
-```c
-struct ArgsConnect {
-
 };
 ```
 
@@ -158,13 +152,13 @@ class Peer {
   PongState pong; // the state of the last pong
 
   void addPeer (ArgsAddPeer args);
-  void connect (ArgsConnect args);
+  void connect (string fromId, string toId, string swarm, uint port);
   void constructor (Config config, uint timestamp);
-  void bind (ArgsBind args);
+  void bind (uint port, bool mustBind = false);
   void calculateNat (ArgsCalculateNat args);
   void requestNat (ArgsRequestNat args);
   void init (uint timestamp);
-  void intro ();
+  void intro (ArgsIntro args);
   void onIntro (ArgsMessage args);
   void onMessage (Any data, string address, uint port, uint timestamp);
   void onPing (ArgsMessage args);
