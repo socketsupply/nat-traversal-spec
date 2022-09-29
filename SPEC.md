@@ -4,7 +4,7 @@ Specify a minimal NAT traversal library for UDP.
 
 # Specification
 
-This implementation targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating.
+This implementation targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating. It also delegates encryption and security responsibility to a higher level protocol or even the application layer, which in many cases is preferred.
 
 ## Constants
 
