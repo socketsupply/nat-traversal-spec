@@ -266,21 +266,7 @@ Some NATs provide mechanisms for being configured directly. This should be the f
 
 <details>
 
-<summary>Details for uPnP communication (Click to Expand)</summary>
-
----
-
-> TODO add copy from old research repo
-
----
-
-</details>
-
-<details>
-
-<summary>Details for NAT-PMP/PCP compatible communication (Click to Expand)</summary>
-
----
+<summary>Notes for NAT-PMP/PCP (Click to Expand)</summary>
 
 In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many librally licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
 
@@ -316,8 +302,6 @@ struct response {
 ```
 
 A mapping renewal packet is formatted identically to an original mapping request; from the point of view of the client, it is a renewal of an existing mapping, but from the point of view of the freshly rebooted NAT gateway, it appears as a new mapping request.
-
----
 
 </details>
 
