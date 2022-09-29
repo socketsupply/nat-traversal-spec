@@ -277,7 +277,7 @@ Port mapping protocols, hole-punching, brute force port scanning, and relay serv
 | :---     | :---        |
 | Static   | The nat has a static IP address and does not drop unsolicited packets. |
 | Easy     | The nat allows a device to use the same port to communicate with other hosts. If you are on an easy NAT, you just have to find out what port you have been given and then other peers will be able to message you on that port. |
-| Hard     | The nat assigns different (probably random) ports for every other host you communicate with. Since a port cannot be reused, connecting as a hard nat is more complicated. This requires two phases, Port Mapping then Hole Punching. |
+| Hard     | The nat assigns different (probably random) ports for every other host you communicate with. Since a port cannot be reused, connecting as a hard nat is more complicated. |
 
 #### Execution
 
