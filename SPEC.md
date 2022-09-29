@@ -115,6 +115,17 @@ struct Config {
 };
 ```
 
+### `ArgsMessage`
+
+```c
+struct ArgsMessage {
+  string message;
+  string address;
+  uint port;
+  uint timestamp;
+};
+```
+
 ### `ArgsAddPeer`
 
 ```c
