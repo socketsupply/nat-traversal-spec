@@ -54,6 +54,12 @@ const uint KEEP_ALIVE_TIMEOUT = 29_000;
 
 ## Data Structures
 
+### `PeerId`
+
+```c
+const unsigned char id[32]; // a high entropy 32 byte key, for example a ed25519 public key
+```
+
 ### `NatType`
 
 ```c
@@ -80,7 +86,7 @@ struct PeerState {
 
 ```c
 struct PeerIdentity {
-  string id; // a unique identifier for this peer
+  PeerId id; // a unique identifier for this peer
   string address; // a valid IP address
   uint port; // a valid port number
 };
@@ -106,7 +112,7 @@ struct Config {
 
 ```c
 struct ArgsAddPeer {
-  string id; // the unique identity of the peer
+  PeerId id; // the unique identity of the peer
   string address; // the ip address of the peer
   uint port; // the numeric port of the peer
   NatType natType; // the nat type of the peer
@@ -121,7 +127,7 @@ struct ArgsAddPeer {
 
 ```c
 struct ArgsIntro {
-  string id;
+  PeerId id;
   string swarm;
   Peer intro;
 };
@@ -150,6 +156,7 @@ class Peer {
   uint publicPort; // set when a pong is received
   NatType natType; // this peer's NatType
   PongState pong; // the state of the last pong
+  map<PeerId, Peer*> peers; // a map of locally known peers
 
   void addPeer (ArgsAddPeer args);
   void connect (string fromId, string toId, string swarm, uint port);
@@ -179,7 +186,7 @@ Generally sent as a "request" for a `MsgPong` message.
 ```c
 struct MsgPing {
   string type = "ping"; // the type of the message
-  string id; // the unique id of the sending-peer
+  PeerId id; // the unique id of the sending-peer
   NatType natType;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
 };
@@ -192,7 +199,7 @@ Generally sent as a "response" to a `MsgPing` message.
 ```c
 struct MsgPong {
   string type = "pong"; // the type of the message
-  string id; // the unique id of the sending-peer
+  PeerId id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
   NatType natType;
@@ -208,7 +215,7 @@ Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
 ```c
 struct MsgTest {
   string type = "test"; // the type of the message
-  string id; // the unique id of the sending-peer
+  PeerId id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
   NatType natType;
