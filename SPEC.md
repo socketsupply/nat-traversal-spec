@@ -284,11 +284,14 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
 
 ### Receive `Intro`
 
-TODO
+This message is received when a peer has asked another peer (or introducer) for an introduction.
 
 #### Execution
 
-TODO
+- IF the receiving peer knows about a peer with the id (`message.target`) and a peer with the id (`message.id`)
+  - call the `connect` method, specifying both `message.target` and `message.id`
+  - call the `connect` method, specifying both `message.id` and `message.target`
+- ELSE the receiving peer will respond with a message of type `ErrorIntro`
 
 ### Receive `Test`
 
