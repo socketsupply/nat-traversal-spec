@@ -258,11 +258,15 @@ Port mapping protocols, hole-punching, brute force port scanning, and relay serv
 | :---     | :---        |
 | Static   | The nat has a static IP address and does not drop unsolicited packets. |
 | Easy     | The nat allows a device to use the same port to communicate with other hosts. If you are on an easy NAT, you just have to find out what port you have been given and then other peers will be able to message you on that port. |
-| Hard     | The nat assigns different (probably random) ports for every other host you communicate with. Since a port cannot be reused, connecting as a hard nat is more complicated. Multiple approaches need to be used, first port mapping protocols need to be tried, failing that, the birthday paradox must be used. |
+| Hard     | The nat assigns different (probably random) ports for every other host you communicate with. Since a port cannot be reused, connecting as a hard nat is more complicated. This requires two phases, Port Mapping then Hole Punching. |
 
 #### Execution
 
 Some NATs provide mechanisms for being configured directly. This should be the first phase of NAT traversal since its less complex than the phases that will follow. The mechanisms we want to use are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP), UDP based port mapping protocols.
+
+<details>
+
+<summary>Port Mapping Protocol Details</summary>
 
 In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many librally licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
 
@@ -299,7 +303,11 @@ struct response {
 
 A mapping renewal packet is formatted identically to an original mapping request; from the point of view of the client, it is a renewal of an existing mapping, but from the point of view of the freshly rebooted NAT gateway, it appears as a new mapping request.
 
-If this is unsuccessful, we will need to switch strategies to "Hole Punching". For that we need to first evaluate the NAT type. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
+</details>
+
+If Port Mapping is unsuccessful, switch strategies to "Hole Punching".
+
+For Hole Punching, the NAT type needs to be discovered. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
 - The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
