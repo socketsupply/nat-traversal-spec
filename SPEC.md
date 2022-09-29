@@ -154,7 +154,7 @@ class Peer {
   void onMessage (Any data, string address, uint port, uint timestamp);
   void onPing (ArgsMessage args);
   void onPong (ArgsMessage args);
-  void onSpin (ArgsMessage args);
+  void onTest (ArgsMessage args);
   void ping (ArgsPing args);
   void retryPing ();
   void timer (uint delay, uint repeat, function<void(uint timestamp)> cb);
@@ -254,7 +254,19 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
 
 ### Receive Intro
 
-### Receive Spin
+TODO
+
+#### Execution
+
+TODO
+
+### Receive Test
+
+This message is received when an introducer sends a message to a peer's `testPort`.
+
+#### Execution
+
+TODO
 
 # Credit
 
