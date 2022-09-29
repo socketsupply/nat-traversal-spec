@@ -236,7 +236,7 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
   - If `P0` receives a message on `testPort` we know that our NAT type is Static
 - Finally, `P0` must calculate the nat type based on the data collected so far
 
-### Receive Pong
+### Receive `Pong`
 
 #### Execution
 
@@ -245,14 +245,14 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
   - The peer updates a property on itself called `pong` which contains the `timestamp` of the event, as well as the `address` and `port` from the data received.
   - The peer updates a property on itself to track the time t
 
-### Receive Ping
+### Receive `Ping`
 
 #### Execution
 
 - A message of type `Ping` is sent to a `Peer`
   - The `Peer` will try to respond with a message of type `Pong`
 
-### Receive Intro
+### Receive `Intro`
 
 TODO
 
@@ -260,7 +260,7 @@ TODO
 
 TODO
 
-### Receive Test
+### Receive `Test`
 
 This message is received when an introducer sends a message to a peer's `testPort`.
 
