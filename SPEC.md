@@ -244,6 +244,8 @@ This section outlines the states of the program.
 
 #### Static Nat
 
+The nat has a static IP address and does not drop unsolicited packets.
+
 #### Easy Nat
 
 The nat allows a device to use the same port to communicate with other hosts. If you are on an easy NAT, you just have to find out what port you have been given and then other peers will be able to message you on that port.
@@ -272,27 +274,29 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
 #### Execution
 
 - A message of type `MsgPong` is received
-  - The peer is added to a local list of known peers
-  - The peer updates a property on itself called `pong` which contains the `timestamp` of the event, as well as the `address` and `port` from the data received.
-  - The peer updates a property on itself to track the time t
+  - The message properties are added to an object and placed in a locally stored list represnting known peers
+  - The local properties `pong.timestamp`, `pong.address` and `pong.port` are updated using the data received
+  - This peer's `recv` property is updated with a current timestamp
+  - TODO notify_peer?
 
 ### Receive `MsgPing`
 
 #### Execution
 
-- A message of type `MsgPing` is sent to a `Peer`
-  - The `Peer` will try to respond with a message of type `MsgPong`
+- A message of type `MsgPing` is received
+  - Respond with a message of type `MsgPong`
 
 ### Receive `MsgIntro`
 
-This message is received when a peer has asked another peer (or introducer) for an introduction.
+Received when a peer has asked another peer (or introducer) for an introduction.
 
 #### Execution
 
-- IF the receiving peer knows about a peer with the id (`message.target`) and a peer with the id (`message.id`)
-  - call the `connect` method, specifying both `message.target` and `message.id`
-  - call the `connect` method, specifying both `message.id` and `message.target`
-- ELSE the receiving peer will respond with a message of type `ErrorIntro`
+- A message of type `MsgIntro` is received
+  - IF the both the IDs (`message.target`) and (`message.id`) are known locally
+    - call the `connect` method, specifying both `message.target` and `message.id`
+    - call the `connect` method, specifying both `message.id` and `message.target`
+  - ELSE respond with a message of type `ErrorIntro`
 
 ### Receive `MsgTest`
 
@@ -300,9 +304,9 @@ This message is received when an introducer sends a message to a peer's `testPor
 
 #### Execution
 
-- The receiving peer will
-  - update its `PongState` property.
-  - re-calculate its nat state
+- A message of type `MsgPing` is received
+  - update the local `PongState` property
+  - re-calculate the local nat state
 
 # Credit
 
