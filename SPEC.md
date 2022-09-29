@@ -54,7 +54,7 @@ const uint KEEP_ALIVE_TIMEOUT = 29_000;
 
 ## Data Structures
 
-### Nat
+### `NatType`
 
 ```c
 enum NatType {
@@ -64,7 +64,7 @@ enum NatType {
 };
 ```
 
-### PeerState
+### `PeerState`
 
 ```c
 struct PeerState {
@@ -76,7 +76,7 @@ struct PeerState {
 ```
 
 
-### PeerIdentity
+### `PeerIdentity`
 
 ```c
 struct PeerIdentity {
@@ -86,7 +86,7 @@ struct PeerIdentity {
 };
 ```
 
-### Config
+### `Config`
 
 ```c
 struct Config {
@@ -102,7 +102,7 @@ struct Config {
 };
 ```
 
-### ArgsAddPeer
+### `ArgsAddPeer`
 
 ```c
 struct ArgsAddPeer {
@@ -117,7 +117,7 @@ struct ArgsAddPeer {
 };
 ```
 
-### ArgsIntro
+### `ArgsIntro`
 
 ```c
 struct ArgsIntro {
@@ -127,7 +127,7 @@ struct ArgsIntro {
 };
 ```
 
-### PongState
+### `PongState`
 
 ```c
 struct PongState {
@@ -172,7 +172,7 @@ class Peer {
 
 ## Messages
 
-### MsgPing
+### `MsgPing`
 
 Generally sent as a "request" for a `MsgPong` message.
 
@@ -185,7 +185,7 @@ struct MsgPing {
 };
 ```
 
-### MsgPong
+### `MsgPong`
 
 Generally sent as a "response" to a `MsgPing` message.
 
@@ -201,7 +201,7 @@ struct MsgPong {
 };
 ```
 
-### MsgTest
+### `MsgTest`
 
 Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
 
