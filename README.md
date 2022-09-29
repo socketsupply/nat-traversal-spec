@@ -1,6 +1,6 @@
 # Summary
 
-This repo contains a specification for NAT traversal (p2p connectivity) implementation.
+Specify a minimal NAT traversal library for UDP.
 
 # Description
 

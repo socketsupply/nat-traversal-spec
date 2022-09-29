@@ -223,9 +223,9 @@ This section outlines the states of the program.
       - If `currentTime` - `lastPongReceived` > `keepalive` * `3`, the peer is Missing
       - If `currentTime` - `lastPongReceived` > `keepalive` * `1.5`, the peer is Inactive
       - Otherwise the peer is considered Active
-    - if there is an interface change, the NAT type is re-evaluated and the function returns
-    - if the time ellapsed is greater than a single cycle of the interval, a wakeup event is emitted
-    - if the `Nat` type has become unknown the NAT type is re-evaluated
+    - IF there is an interface change, the NAT type is re-evaluated and the function returns
+    - IF the time ellapsed is greater than a single cycle of the interval, a wakeup event is emitted
+    - IF the `Nat` type has become unknown the NAT type is re-evaluated
 
 ### NAT Evaluation
 
@@ -251,7 +251,7 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
 - `P0` sends `Ping` to `I0` and `I1`.
 - `I0` and `I1` should respond by sending `Pong` to `P0` and the message includes the NAT type and public IP and ephemeral port.
 - `I0` and `I1` also respond by sending a message to `P0` on the `testPort`.
-  - If `P0` receives a message on `testPort` we know that our NAT type is Static
+  - IF `P0` receives a message on `testPort` we know that our NAT type is Static
 - Finally, `P0` must calculate the nat type based on the data collected so far
 
 ### Receive `Pong`
