@@ -62,16 +62,6 @@ enum Nat {
 }
 ```
 
-### PeerIdentity
-
-```c
-struct PeerIdentity {
-  string id, // a unique identifier for this peer
-  string address, // a valid IP address
-  uint port // a valid port number
-}
-```
-
 ### PeerStates
 
 ```c
@@ -80,6 +70,17 @@ struct PeerStates {
   float Missing = 3.0,
   float Inactive = 1.5,
   float Active = 0.0
+}
+```
+
+
+### PeerIdentity
+
+```c
+struct PeerIdentity {
+  string id, // a unique identifier for this peer
+  string address, // a valid IP address
+  uint port // a valid port number
 }
 ```
 
@@ -175,12 +176,12 @@ class Peer {
 
 ## Messages
 
-### Ping
+### MsgPing
 
-Generally sent as a "request" for a `Pong` message.
+Generally sent as a "request" for a `MsgPong` message.
 
 ```c
-struct Ping {
+struct MsgPing {
   type: "ping", // the type of the message
   id: string, // the unique id of the sending-peer
   nat: Nat,
@@ -188,12 +189,12 @@ struct Ping {
 }
 ```
 
-### Pong
+### MsgPong
 
-Generally sent as a "response" to a `Ping` message.
+Generally sent as a "response" to a `MsgPing` message.
 
 ```c
-struct Pong {
+struct MsgPong {
   type: "pong", // the type of the message
   id: string, // the unique id of the sending-peer
   address: string, // a string representation of the ip address of the sending-peer
@@ -204,12 +205,12 @@ struct Pong {
 }
 ```
 
-### Test
+### MsgTest
 
-Sent to the `testPort` of a peer as a response to a `Ping` message.
+Sent to the `testPort` of a peer as a response to a `MsgPing` message.
 
 ```c
-struct Test {
+struct MsgTest {
   type: "test", // the type of the message
   id: string, // the unique id of the sending-peer
   address: string, // a string representation of the ip address of the sending-peer
@@ -260,29 +261,29 @@ However a router (even one with a firewall) can be cooerced into accepting packe
 A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` and `testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
 - The `.publicAddress` and `.nat` properties of the `Peer` are set to `null`
-- `P0` sends `Ping` to `I0` and `I1`.
-- `I0` and `I1` should respond by sending `Pong` to `P0` and the message includes the NAT type and public IP and ephemeral port.
+- `P0` sends `MsgPing` to `I0` and `I1`.
+- `I0` and `I1` should respond by sending `MsgPong` to `P0` and the message includes the NAT type and public IP and ephemeral port.
 - `I0` and `I1` also respond by sending a message to `P0` on the `testPort`.
   - IF `P0` receives a message on `testPort` we know that our NAT type is Static
 - Finally, `P0` must calculate the nat type based on the data collected so far
 
-### Receive `Pong`
+### Receive `MsgPong`
 
 #### Execution
 
-- A message of type `Pong` is received
+- A message of type `MsgPong` is received
   - The peer is added to a local list of known peers
   - The peer updates a property on itself called `pong` which contains the `timestamp` of the event, as well as the `address` and `port` from the data received.
   - The peer updates a property on itself to track the time t
 
-### Receive `Ping`
+### Receive `MsgPing`
 
 #### Execution
 
-- A message of type `Ping` is sent to a `Peer`
-  - The `Peer` will try to respond with a message of type `Pong`
+- A message of type `MsgPing` is sent to a `Peer`
+  - The `Peer` will try to respond with a message of type `MsgPong`
 
-### Receive `Intro`
+### Receive `MsgIntro`
 
 This message is received when a peer has asked another peer (or introducer) for an introduction.
 
@@ -293,7 +294,7 @@ This message is received when a peer has asked another peer (or introducer) for 
   - call the `connect` method, specifying both `message.id` and `message.target`
 - ELSE the receiving peer will respond with a message of type `ErrorIntro`
 
-### Receive `Test`
+### Receive `MsgTest`
 
 This message is received when an introducer sends a message to a peer's `testPort` as the result of receving a `Ping`.
 
