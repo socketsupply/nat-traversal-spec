@@ -227,11 +227,11 @@ This section outlines the states of the program.
 
 #### Execution
 - An instance of the Peer class is constructed
-  - Two UDP ports are bound, namely `.localPort` and `.testPort`
-    - When a message is received it will dispatch the corresponding method.
+  - The UDP ports defined in `Config.localPort` and `Config.testPort` are bound
+    - When a message is received it will dispatch the corresponding method
   - An interval will poll for network interface changes
-    - IF there is no `keepAlive` specified in the config the function returns
-    - An additional interval is started after `keepAlive` and repeats every `keepAlive` seconds
+    - IF there is no `Config.keepAlive` specified in the config the function returns
+    - An additional interval is started after `Config.keepAlive` and repeats every `Config.keepAlive` seconds
       - If `currentTime` - `lastPongReceived` > `keepalive` * `5`, the peer is Forgotten
       - If `currentTime` - `lastPongReceived` > `keepalive` * `3`, the peer is Missing
       - If `currentTime` - `lastPongReceived` > `keepalive` * `1.5`, the peer is Inactive
@@ -260,9 +260,9 @@ A router's routing table or firewall may drop "unsolicited" packets. So simply b
 
 However a router (even one with a firewall) can be cooerced into accepting packets in a perfectly safe way.
 
-A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` and `testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
+A NAT check requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
-- The `.publicAddress` and `.nat` properties of the `Peer` are set to `null`
+- The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
 - `I0` and `I1` should respond by sending `MsgPong` to `P0` and the message includes the NAT type and public IP and ephemeral port.
 - `I0` and `I1` also respond by sending a message to `P0` on the `testPort`.
@@ -275,7 +275,7 @@ A NAT check requires a peer (`P0`) to initially bind two ports, `defaultPort` an
 
 - A message of type `MsgPong` is received
   - The message properties are added to an object and placed in a locally stored list represnting known peers
-  - The local properties `pong.timestamp`, `pong.address` and `pong.port` are updated using the data received
+  - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
   - This peer's `recv` property is updated with a current timestamp
   - TODO notify_peer?
 
@@ -293,9 +293,9 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 #### Execution
 
 - A message of type `MsgIntro` is received
-  - IF the both the IDs (`message.target`) and (`message.id`) are known locally
-    - call the `connect` method, specifying both `message.target` and `message.id`
-    - call the `connect` method, specifying both `message.id` and `message.target`
+  - IF the both the IDs (`MsgIntro.target`) and (`MsgIntro.id`) are known locally
+    - call `Peer.connect`, specifying both `MsgIntro.target` and `MsgIntro.id`
+    - call `Peer.connect`d, specifying both `MsgIntro.id` and `MsgIntro.target`
   - ELSE respond with a message of type `ErrorIntro`
 
 ### Receive `MsgTest`
