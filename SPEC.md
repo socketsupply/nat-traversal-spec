@@ -61,10 +61,18 @@ const uint KEEP_ALIVE_TIMEOUT = 29_000;
 
 ### `PeerId`
 
-A high entropy key, for example a ed25519 public key.
+A high entropy key, for example a ed25519 public key which is 32 bytes or 256 bits.
 
 ```c
-typedef uint64_t PeerId;
+typedef unsigned char[32] PeerId;
+```
+
+### `SwarmId`
+
+A high entropy key, for example a ed25519 public key which is 32 bytes or 256 bits.
+
+```c
+typedef unsigned char[32] SwarmId;
 ```
 
 ### `NatType`
@@ -88,14 +96,23 @@ struct PeerState {
 };
 ```
 
-
 ### `PeerIdentity`
 
 ```c
 struct PeerIdentity {
   PeerId id; // a unique identifier for this peer
   string address; // a valid IP address
-  uint port; // a valid port number
+  uint16_t port; // a valid port number
+};
+```
+
+### `PeerAddress`
+
+```c
+struct PeerAddress {
+  string address; // a valid IP address
+  uint16_t port; // a valid port number
+  NatType nat; // the nat type of the peer
 };
 ```
 
@@ -121,7 +138,7 @@ struct Config {
 struct ArgsMessage {
   string message;
   string address;
-  uint port;
+  uint16_t port;
   uint timestamp;
 };
 ```
@@ -132,9 +149,9 @@ struct ArgsMessage {
 struct ArgsAddPeer {
   PeerId id; // the unique identity of the peer
   string address; // the ip address of the peer
-  uint port; // the numeric port of the peer
-  NatType natType; // the nat type of the peer
-  uint outport; // the outgoing ephemeral port of the peer
+  uint16_t port; // the numeric port of the peer
+  NatType nat; // the nat type of the peer
+  uint16_t outport; // the outgoing ephemeral port of the peer
   uint restart; // timestamp of the last restart
   uint timestamp;
   bool isIntroducer; // if this peer static
@@ -172,7 +189,7 @@ class Peer {
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
   uint publicPort; // set when a pong is received
-  NatType natType; // this peer's NatType
+  NatType nat; // this peer's NatType
   PongState pong; // the state of the last pong
   map<PeerId, Peer*> peers; // a map of locally known peers
 
@@ -190,12 +207,39 @@ class Peer {
   void onPong (ArgsMessage args);
   void onTest (ArgsMessage args);
   void ping (ArgsPing args);
-  void retryPing ();
+  void retryPing (PeerId id, PeerAddress address);
   void timer (uint delay, uint repeat, function<void(uint timestamp)> cb);
 };
 ```
 
 ## Messages
+
+### `MsgConnect`
+
+```c
+struct MsgConnect {
+  string type = "connect";
+  PeerId id; // the introducer's id. The id in the message is always the sender's id.
+  PeerId target; // the id of the peer to connect to
+  string address; // the address of the target
+  NatType nat; // the nat of the target
+  uint16_t port; // the port of the target
+  SwarmId swarm; // optional
+};
+```
+
+### `MsgLocal`
+
+Sent to establish a connection to another peer on the local network.
+
+```c
+struct MsgLocal {
+  string type = "local"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  string address; // this peer's local address
+  uint16_t port; // this peer's local port
+};
+```
 
 ### `MsgPing`
 
@@ -205,7 +249,7 @@ Generally sent as a "request" for a `MsgPong` message.
 struct MsgPing {
   string type = "ping"; // the type of the message
   PeerId id; // the unique id of the sending-peer
-  NatType natType;
+  NatType nat;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
 };
 ```
@@ -220,9 +264,19 @@ struct MsgPong {
   PeerId id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
-  NatType natType;
+  NatType nat;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
   uint timestamp; a unix timestamp specifying the time the ping message was received
+};
+```
+
+### `MsgRelay`
+
+```c
+struct MsgRelay {
+  string type = "relay";
+  PeerId target; // the id of the peer we want to connect to
+  Any content; // most likely a message of any type
 };
 ```
 
@@ -236,7 +290,7 @@ struct MsgTest {
   PeerId id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
-  NatType natType;
+  NatType nat;
 };
 ```
 
@@ -361,6 +415,36 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - call `Peer.connect`, specifying both `MsgIntro.target` and `MsgIntro.id`
     - call `Peer.connect`, specifying both `MsgIntro.id` and `MsgIntro.target`
   - ELSE respond with a message of type `ErrorIntro`
+
+### Receve `MsgLocal`
+
+- Call the `.retryPing` method to send a `MsgPing` to the peer with `MsgLocal.id`
+
+### Receive `MsgJoin`
+
+- TODO
+
+### Receive `MsgRelay`
+
+- TODO
+
+### Receive `MsgConnect`
+
+- A message of type `MsgConnect` is received
+  - IF the message has a SwarmId
+    - TODO
+  - IF there is a `Peer` with `MsgConnect.target` id in this `.peers` map property
+    - IF the address is not the same assign the peer the address from the message and make the `PongState` null
+    - IF we have sent a packet within `CONNECTING_MAX_TIME` time, early return
+    - IF we have sent or received a message within the `KEEP_ALIVE_TIMEOUT`
+      - this peer will call .retryPing() to be sure it is already connected
+  - IF `MsgConenct.address` is equal to this `.publicAddress` property
+    - Both peers are on the same local network, send a `MsgRelay` containing a `MsgLocal` back to `MsgConnect.id`
+  - IF `MsgConnect.nat` is `Satitc` OR this peer's nat is `Easy` AND `MsgConnect.nat` is `easy`
+    - call .retryPing() and return
+  - IF `MsgConnect.nat` is `Hard` AND this peer's nat is `Easy`
+    - An interval is started...
+      - TODO
 
 ### Receive `MsgTest`
 
