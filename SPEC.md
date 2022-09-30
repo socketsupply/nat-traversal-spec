@@ -440,11 +440,17 @@ Received when a peer has asked another peer (or introducer) for an introduction.
       - this peer will call .retryPing() to be sure it is already connected
   - IF `MsgConenct.address` is equal to this `.publicAddress` property
     - Both peers are on the same local network, send a `MsgRelay` containing a `MsgLocal` back to `MsgConnect.id`
-  - IF `MsgConnect.nat` is `Satitc` OR this peer's nat is `Easy` AND `MsgConnect.nat` is `easy`
+  - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
     - call .retryPing() and return
-  - IF `MsgConnect.nat` is `Hard` AND this peer's nat is `Easy`
-    - An interval is started...
-      - TODO
+  - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `Hard`
+    - An interval is started that sends messages until we receive a message from the peer with `MsgConnect.id`.
+      - IF 1000 `MsgPing` messages have been sent
+        - return and clear the timer (50% of the time 250 messages should be enough)
+    - IF the targeted peer has an updated `PongState`, we have connected
+      - return and clear the timer
+  - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
+    - send 256 `MsgPing` with `MsgConnect`
+  - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
 
 ### Receive `MsgTest`
 
