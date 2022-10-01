@@ -51,7 +51,8 @@ const uint CONNECTING_MAX_TIME = BDP * BDP_MAX_PACKETS;
 
 ### `KEEP_ALIVE_TIMEOUT`
 
-100 byte keepalive packet 120 times an hour 24 hours is 0.288 mb a day per peer.
+We tested several nats (phone hotspot, wifi routers) and found that firewall port stayed open for 30 seconds, so the keepalive timeout is 29.
+this is expected to cost 100 byte keepalive packet 120 times an hour 24 hours is 0.288 mb a day per peer.
 
 ```c
 const uint KEEP_ALIVE_TIMEOUT = 29_000;
