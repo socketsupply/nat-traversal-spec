@@ -9,6 +9,7 @@ This implementation targets UDP. UDP is a [message-oriented][F0] [transport laye
 ## Constants
 
 ### `LOCAL_PORT`
+
 The UDP port to bind to.
 
 ```c
@@ -24,6 +25,7 @@ const uint TEST_PORT = 3457;
 ```
 
 ### `BDP`
+
 The delay between packets sent for birthday paradox connection 10ms means 100 packets per second.
 
 ```c
@@ -31,6 +33,7 @@ const uint BDP = 10;
 ```
 
 ### `BDP_MAX_PACKETS`
+
 The maximum number of packets to use when employing the birthday paradox strategy. On average, about ~255 packets are sent per successful connection (giving up after 1000 packets
 means 97% of attempts are successful. It is necessary to give up at some point because the other side might not have done anything, or might have crashed, etc).
 
@@ -39,6 +42,7 @@ const uint BDP_MAX_PACKETS = 1000;
 ```
 
 ### `CONNECTING_MAX_TIME`
+
 The time that we expect a new connection to take. Do not start another new connection attempt within this time, even if we havn't received a packet yet.
 
 ```c
@@ -46,6 +50,7 @@ const uint CONNECTING_MAX_TIME = BDP * BDP_MAX_PACKETS;
 ```
 
 ### `KEEP_ALIVE_TIMEOUT`
+
 We tested several nats (phone hotspot, wifi routers) and found that firewall port stayed open for 30 seconds, so the keepalive timeout is 29.
 this is expected to cost 100 byte keepalive packet 120 times an hour 24 hours is 0.288 mb a day per peer.
 
@@ -55,7 +60,23 @@ const uint KEEP_ALIVE_TIMEOUT = 29_000;
 
 ## Data Structures
 
-### Nat
+### `PeerId`
+
+A high entropy key, for example a ed25519 public key which is 32 bytes or 256 bits.
+
+```c
+typedef unsigned char[32] PeerId;
+```
+
+### `SwarmId`
+
+A high entropy key, for example a ed25519 public key which is 32 bytes or 256 bits.
+
+```c
+typedef unsigned char[32] SwarmId;
+```
+
+### `NatType`
 
 ```c
 enum NatType {
@@ -65,7 +86,7 @@ enum NatType {
 };
 ```
 
-### PeerState
+### `PeerState`
 
 ```c
 struct PeerState {
@@ -76,18 +97,27 @@ struct PeerState {
 };
 ```
 
-
-### PeerIdentity
+### `PeerIdentity`
 
 ```c
 struct PeerIdentity {
-  string id; // a unique identifier for this peer
+  PeerId id; // a unique identifier for this peer
   string address; // a valid IP address
-  uint port; // a valid port number
+  uint16_t port; // a valid port number
 };
 ```
 
-### Config
+### `PeerAddress`
+
+```c
+struct PeerAddress {
+  string address; // a valid IP address
+  uint16_t port; // a valid port number
+  NatType nat; // the nat type of the peer
+};
+```
+
+### `Config`
 
 ```c
 struct Config {
@@ -103,44 +133,49 @@ struct Config {
 };
 ```
 
-### ArgsAddPeer
+### `ArgsMessage`
+
+```c
+struct ArgsMessage {
+  string message;
+  string address;
+  uint16_t port;
+  uint timestamp;
+};
+```
+
+### `ArgsAddPeer`
 
 ```c
 struct ArgsAddPeer {
-  string id; // the unique identity of the peer
+  PeerId id; // the unique identity of the peer
   string address; // the ip address of the peer
-  uint port; // the numeric port of the peer
-  NatType natType; // the nat type of the peer
-  uint outport; // the outgoing ephemeral port of the peer
+  uint16_t port; // the numeric port of the peer
+  NatType nat; // the nat type of the peer
+  uint16_t outport; // the outgoing ephemeral port of the peer
   uint restart; // timestamp of the last restart
   uint timestamp;
   bool isIntroducer; // if this peer static
 };
 ```
 
-### PongState
+### `ArgsIntro`
+
+```c
+struct ArgsIntro {
+  PeerId id;
+  string swarm;
+  Peer intro;
+};
+```
+
+### `PongState`
 
 ```c
 struct PongState {
   uint timestamp;
   string address; // the ip address of the peer
   uint port; // the numeric port of the peer
-};
-```
-
-### ArgsBind
-
-```c
-struct ArgsBind {
-
-};
-```
-
-### ArgsConnect
-
-```c
-struct ArgsConnect {
-
 };
 ```
 
@@ -155,70 +190,108 @@ class Peer {
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
   uint publicPort; // set when a pong is received
-  NatType natType; // this peer's NatType
+  NatType nat; // this peer's NatType
   PongState pong; // the state of the last pong
+  map<PeerId, Peer*> peers; // a map of locally known peers
 
   void addPeer (ArgsAddPeer args);
-  void connect (ArgsConnect args);
+  void connect (string fromId, string toId, string swarm, uint port);
   void constructor (Config config, uint timestamp);
-  void bind (ArgsBind args);
+  void bind (uint port, bool mustBind = false);
   void calculateNat (ArgsCalculateNat args);
   void requestNat (ArgsRequestNat args);
   void init (uint timestamp);
-  void intro ();
+  void intro (ArgsIntro args);
   void onIntro (ArgsMessage args);
   void onMessage (Any data, string address, uint port, uint timestamp);
   void onPing (ArgsMessage args);
   void onPong (ArgsMessage args);
   void onTest (ArgsMessage args);
   void ping (ArgsPing args);
-  void retryPing ();
+  void retryPing (PeerId id, PeerAddress address);
   void timer (uint delay, uint repeat, function<void(uint timestamp)> cb);
 };
 ```
 
 ## Messages
 
-### MsgPing
+### `MsgConnect`
+
+```c
+struct MsgConnect {
+  string type = "connect";
+  PeerId id; // the introducer's id. The id in the message is always the sender's id.
+  PeerId target; // the id of the peer to connect to
+  string address; // the address of the target
+  NatType nat; // the nat of the target
+  uint16_t port; // the port of the target
+  SwarmId swarm; // optional
+};
+```
+
+### `MsgLocal`
+
+Sent to establish a connection to another peer on the local network.
+
+```c
+struct MsgLocal {
+  string type = "local"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  string address; // this peer's local address
+  uint16_t port; // this peer's local port
+};
+```
+
+### `MsgPing`
 
 Generally sent as a "request" for a `MsgPong` message.
 
 ```c
 struct MsgPing {
   string type = "ping"; // the type of the message
-  string id; // the unique id of the sending-peer
-  NatType natType;
+  PeerId id; // the unique id of the sending-peer
+  NatType nat;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
 };
 ```
 
-### MsgPong
+### `MsgPong`
 
 Generally sent as a "response" to a `MsgPing` message.
 
 ```c
 struct MsgPong {
   string type = "pong"; // the type of the message
-  string id; // the unique id of the sending-peer
+  PeerId id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
-  NatType natType;
+  NatType nat;
   uint restart; // a unix timestamp specifying uptime of the sending-peer
   uint timestamp; a unix timestamp specifying the time the ping message was received
 };
 ```
 
-### MsgTest
+### `MsgRelay`
+
+```c
+struct MsgRelay {
+  string type = "relay";
+  PeerId target; // the id of the peer we want to connect to
+  Any content; // most likely a message of any type
+};
+```
+
+### `MsgTest`
 
 Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
 
 ```c
 struct MsgTest {
   string type = "test"; // the type of the message
-  string id; // the unique id of the sending-peer
+  PeerId id; // the unique id of the sending-peer
   string address; // a string representation of the ip address of the sending-peer
   uint port; // a numeric representation of the port of the sending-peer
-  NatType natType;
+  NatType nat;
 };
 ```
 
@@ -259,11 +332,15 @@ Port mapping protocols, hole-punching, brute force port scanning, and relay serv
 | :---     | :---        |
 | Static   | The nat has a static IP address and does not drop unsolicited packets. |
 | Easy     | The nat allows a device to use the same port to communicate with other hosts. If you are on an easy NAT, you just have to find out what port you have been given and then other peers will be able to message you on that port. |
-| Hard     | The nat assigns different (probably random) ports for every other host you communicate with. Since a port cannot be reused, connecting as a hard nat is more complicated. Multiple approaches need to be used, first port mapping protocols need to be tried, failing that, the birthday paradox must be used. |
+| Hard     | The nat assigns different (probably random) ports for every other host you communicate with. Since a port cannot be reused, connecting as a hard nat is more complicated. |
 
 #### Execution
 
 Some NATs provide mechanisms for being configured directly. This should be the first phase of NAT traversal since its less complex than the phases that will follow. The mechanisms we want to use are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP), UDP based port mapping protocols.
+
+<details>
+
+<summary>Notes for NAT-PMP/PCP (Click to Expand)</summary>
 
 In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many librally licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
 
@@ -300,7 +377,9 @@ struct response {
 
 A mapping renewal packet is formatted identically to an original mapping request; from the point of view of the client, it is a renewal of an existing mapping, but from the point of view of the freshly rebooted NAT gateway, it appears as a new mapping request.
 
-If this is unsuccessful, we will need to switch strategies to "Hole Punching". For that we need to first evaluate the NAT type. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
+</details>
+
+In the next phase, the NAT type needs to be discovered. This requires a peer (`P0`) to initially bind two ports, `Config.localPort` and `Config.testPort`. In addition, two introducers (`I0`, `I1`) are required, they should reside on separate static peers outside the NAT being tested.
 
 - The `Peer.publicAddress` and `Peer.nat` properties are set to `null`
 - `P0` sends `MsgPing` to `I0` and `I1`.
@@ -335,8 +414,44 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 - A message of type `MsgIntro` is received
   - IF the both the IDs (`MsgIntro.target`) and (`MsgIntro.id`) are known locally
     - call `Peer.connect`, specifying both `MsgIntro.target` and `MsgIntro.id`
-    - call `Peer.connect`d, specifying both `MsgIntro.id` and `MsgIntro.target`
+    - call `Peer.connect`, specifying both `MsgIntro.id` and `MsgIntro.target`
   - ELSE respond with a message of type `ErrorIntro`
+
+### Receve `MsgLocal`
+
+- Call the `.retryPing` method to send a `MsgPing` to the peer with `MsgLocal.id`
+
+### Receive `MsgJoin`
+
+- TODO
+
+### Receive `MsgRelay`
+
+- TODO
+
+### Receive `MsgConnect`
+
+- A message of type `MsgConnect` is received
+  - IF the message has a SwarmId
+    - TODO
+  - IF there is a `Peer` with `MsgConnect.target` id in this `.peers` map property
+    - IF the address is not the same assign the peer the address from the message and make the `PongState` null
+    - IF we have sent a packet within `CONNECTING_MAX_TIME` time, early return
+    - IF we have sent or received a message within the `KEEP_ALIVE_TIMEOUT`
+      - this peer will call .retryPing() to be sure it is already connected
+  - IF `MsgConenct.address` is equal to this `.publicAddress` property
+    - Both peers are on the same local network, send a `MsgRelay` containing a `MsgLocal` back to `MsgConnect.id`
+  - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
+    - call .retryPing() and return
+  - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `Hard`
+    - An interval is started that sends messages until we receive a message from the peer with `MsgConnect.id`.
+      - IF 1000 `MsgPing` messages have been sent
+        - return and clear the timer (50% of the time 250 messages should be enough)
+    - IF the targeted peer has an updated `PongState`, we have connected
+      - return and clear the timer
+  - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
+    - send 256 `MsgPing` with `MsgConnect`
+  - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
 
 ### Receive `MsgTest`
 
