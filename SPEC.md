@@ -103,7 +103,7 @@ struct PeerState {
 
 ```c
 struct PeerIdentity {
-  PeerId id; // a unique identifier for this peer
+  PeerId id; // this unique identifier
   string address; // a valid IP address
   uint16_t port; // a valid port number
 };
@@ -157,7 +157,7 @@ struct ArgsAddPeer {
   uint16_t outport; // the outgoing ephemeral port of the peer
   uint restart; // timestamp of the last restart
   uint timestamp;
-  bool isIntroducer; // if this peer static
+  bool isIntroducer; // if this peer is static
 };
 ```
 
@@ -193,7 +193,7 @@ class Peer {
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
   uint publicPort; // set when a pong is received
-  NatType nat; // this peer's NatType
+  NatType nat; // this NatType
   PongState pong; // the state of the last pong
   map<PeerId, Peer*> peers; // a map of locally known peers
   map<SwarmId, Swarm*> swarms; // a map of locally known peers
@@ -258,8 +258,8 @@ Sent to establish a connection to another peer on the local network.
 struct MsgLocal {
   string type = "local"; // the type of the message
   PeerId id; // the unique id of the sending-peer
-  string address; // this peer's local address
-  uint16_t port; // this peer's local port
+  string address; // this local address
+  uint16_t port; // this local port
 };
 ```
 
@@ -418,7 +418,7 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
 - A message of type `MsgPong` is received
   - The message properties are added to an object and placed in a locally stored list representing known peers
   - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
-  - This peer's `recv` property is updated with a current timestamp
+  - This `.recv` is updated with a current timestamp
   - call this `.notify` method
     - TODO set
 
@@ -494,7 +494,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 
 - A message of type `MsgRelay` is receved
   - IF the object of type `Peer` exists in this `.peers` map
-    - call this `.send()` method
+    - call this `.send` method
       - the first argument must be set to `MsgRelay.content`
       - the second argument muyst be set to the `Peer`
       - the third argument must be set to the `Peer.output` or this `.localPort`
