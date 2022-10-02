@@ -4,9 +4,9 @@ Specify a minimal NAT traversal library for UDP.
 
 # Specification
 
-This specification includes essential constants, functions, and program states. This document tries to be concise, but if something isn't clear enough, please open an issue.
-
 This specification also targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating. It also delegates encryption and security responsibility to a higher level protocol or even the application layer, which allows for the broadest set of use cases.
+
+This document includes essential constants, functions, and program states. This document differentiates very intentionally between SHOULD and MUST. This document tries to be concise, but if something isn't clear enough, please open an issue.
 
 ## Constants
 
@@ -45,7 +45,7 @@ const uint BDP_MAX_PACKETS = 1000;
 
 ### `CONNECTING_MAX_TIME`
 
-The time that we expect a new connection to take. Do not start another new connection attempt within this time, even if we havn't received a packet yet.
+The time that we expect a new connection to take. Do not start another new connection attempt within this time, even if we haven't received a packet yet.
 
 ```c
 const uint CONNECTING_MAX_TIME = BDP * BDP_MAX_PACKETS;
@@ -53,8 +53,8 @@ const uint CONNECTING_MAX_TIME = BDP * BDP_MAX_PACKETS;
 
 ### `KEEP_ALIVE_TIMEOUT`
 
-We tested several nats (phone hotspot, wifi routers) and found that firewall port stayed open for 30 seconds, so the keepalive timeout is 29.
-this is expected to cost 100 byte keepalive packet 120 times an hour 24 hours is 0.288 mb a day per peer.
+We tested several nats (phone hotspot, wifi routers) and found that the firewall port stayed open for 30 seconds, so the keepalive timeout is 29.
+This is expected to cost one `100 byte` keepalive packet `120 times` an hour `24 hours` is `0.288Mb` a day per peer.
 
 ```c
 const uint KEEP_ALIVE_TIMEOUT = 29_000;
@@ -189,7 +189,7 @@ A peer MUST, in some way, implement at least these methods and properties. Regar
 class Peer {
   bool isIntroducer = false; // set to true if peer has a static IP address
   bool notified = false; // ensure a peer is only notified once about another peer being added
-  string localAddress; // deteremind by checking the network interfaces
+  string localAddress; // determined by checking the network interfaces
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
   uint publicPort; // set when a pong is received
@@ -216,6 +216,7 @@ class Peer {
   void onTest (ArgsMessage args);
   void onWakeup (uint timestamp);
   void ping (ArgsPing args);
+  void send (ArgsMessage message, PeerAddress address, uint port);
   void retryPing (PeerId id, PeerAddress address);
   void createInterval (uint delay, uint repeat, function<void(uint timestamp)> cb);
 };
@@ -234,6 +235,18 @@ struct MsgConnect {
   NatType nat; // the nat of the target
   uint16_t port; // the port of the target
   SwarmId swarm; // optional
+};
+```
+
+### `MsgJoin`
+
+```c
+struct MsgJoin {
+  string type = "join";
+  PeerId id; // the id of the sender
+  SwarmId swarm; // the id of the swarm
+  NatType nat; // the nat typeo of the sender
+  uint peers; // the numner of peers in the swarm that the peer knows about
 };
 ```
 
@@ -310,6 +323,7 @@ This section outlines the states of the program.
 ### Initial
 
 #### Execution
+
 - An instance of the Peer class is constructed
   - The UDP ports defined in `Config.localPort` and `Config.testPort` are bound
     - When a message is received it will dispatch the corresponding method
@@ -321,14 +335,14 @@ This section outlines the states of the program.
       - If `currentTime` - `lastPongReceived` > `keepalive` * `1.5`, the peer is Inactive
       - Otherwise the peer is considered Active
     - IF there is an interface change, the NAT type is re-evaluated and the function returns
-    - IF the time ellapsed is greater than a single cycle of the interval
+    - IF the time elapsed is greater than a single cycle of the interval
       - FOR every peer in this `.peers` map, send `MsgPing`
       - FOR every swarm in this `.swarms` map, send `MsgJoin`
     - The NAT type is not well defined, it is re-evaluated
 
 ### NAT Evaluation
 
-A router's routing table or firewall may drop "unsolicited" packets. So simply binding a port and waiting for connections won't work. However, a router (even one with a firewall) can be cooerced into accepting packets in a perfectly safe way. There are 3 conditions where a NAT (and Firewall) will allow inbound traffic.
+A router's routing table or firewall may drop "unsolicited" packets. So simply binding a port and waiting for connections won't work. However, a router (even one with a firewall) can be coerced into accepting packets in a perfectly safe way. There are 3 conditions where a NAT (and Firewall) will allow inbound traffic.
 
 1) The user manually configures port forwarding/mapping.
 
@@ -346,13 +360,13 @@ Port mapping protocols, hole-punching, brute force port scanning, and relay serv
 
 #### Execution
 
-Some NATs provide mechanisms for being configured directly. This should be the first phase of NAT traversal since its less complex than the phases that will follow. The mechanisms we want to use are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP), UDP based port mapping protocols.
+Some NATs provide mechanisms for being configured directly. This SHOULD be the first phase of NAT traversal since its less complex than the phases that will follow. The mechanisms we want to use are Universal Plug and Play, NAT-Port Mapping Protocol, and Port Control Protocol (respectively, uPnP, NAT-PMP and PCP), UDP based port mapping protocols.
 
 <details>
 
 <summary>Notes for NAT-PMP/PCP (Click to Expand)</summary>
 
-In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many librally licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
+In 2005 NAT-PMP (RFC [6886][rfc6886]) was widely implemented, but in 2013 it was superseded by PCP (RFC [6887][rfc6887]). PCP builds on NAT-PMP, using the same UDP ports `5350` and `5351`, and a compatible packet format. PCP allows an IPv6 or IPv4 host to control how incoming IPv6 or IPv4 packets are translated and forwarded by a NAT or firewall, and also allows a host to optimize its outgoing NAT keep-alive messages. This is ideal for reducing infrastructure requirements (no rendezvous servers), saving energy, and reducing network chatter from keep alive requests. PCP is widely supported but NAT-PMP will handle most cases related to connecting peers. There are many library licensed open source projects that offer reference implementations, for example [libplum][GH02] or [libpcp][GH01].
 
 UDP packets have an 8 byte header with 4 fields (`Source Port`, `Destination Port` `Length` and `Checksum`) with a maximum of 67 KB as a payload (according to RFCs [791][rfc791], [1122][rfc1122], and [2460][rfc2460]). Here are examples of the packets needed to instruct NAT-PMP/PCP on how to map addresses and ports.
 
@@ -364,7 +378,7 @@ The first step in communicating with the NAT is to request a port mapping. To do
 struct request {
   uint8_t version;
   uint8_t opcode; 1=UDP, 2=TCP
-  uint16_t reserved; // Muust be 0 (always)
+  uint16_t reserved; // Must be 0 (always)
   uint16_t internal_port;
   uint16_t suggested_external_port; // Avoid (not consistently honored by NATs)
   uint32_t lifetime; // The RECOMMENDED Lifetime is 7200 seconds (two hours)
@@ -403,7 +417,7 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
 #### Execution
 
 - A message of type `MsgPong` is received
-  - The message properties are added to an object and placed in a locally stored list represnting known peers
+  - The message properties are added to an object and placed in a locally stored list representing known peers
   - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
   - This peer's `recv` property is updated with a current timestamp
   - TODO notify_peer?
@@ -414,6 +428,12 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
 
 - A message of type `MsgPing` is received
   - Respond with a message of type `MsgPong`
+    - `.id` MUST be set to this `.id`
+    - `.address` MUST be set to the value of `.address` in rinfo
+    - `.port` MUST be set to the value of `.port` in rinfo
+    - `.nat` MUST be set to this `.nat` property
+    - `.restart` MUST be set to this `.restart` property
+    - `.ts` MUST be set to the timestamp that the message was received
 
 ### Receive `MsgIntro`
 
@@ -427,17 +447,55 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - call `Peer.connect`, specifying both `MsgIntro.id` and `MsgIntro.target`
   - ELSE respond with a message of type `ErrorIntro`
 
-### Receve `MsgLocal`
+### Receive `MsgLocal`
 
 - Call the `.retryPing` method to send a `MsgPing` to the peer with `MsgLocal.id`
 
+
 ### Receive `MsgJoin`
 
-- TODO
+- A message of type `MsgJoin` is received
+  - The object with the `SwarmId`, `MsgJoin.swarm` is found on this `.swarms` property OR it is created
+  - The object is an associative array where the key is the `SwarmId` and the value is the timestamp that this message was received
+  - A new peer is added to this `.peers` map property by calling this `.addPeer` method
+    - `.id` MUST be set to the `MsgJoin.id` property
+    - `.address` MUST be set to the `.address` property of the rinfo
+    - `.port` MUST be set to the `.port` property of the rinfo
+    - `.nat` MUST be set to `MsgJoin.nat`
+    - `.output` MUST be set to this `.config.localPort`
+    - `.reset` MUST be either `0` or this `.restart`
+    - `.timestamp` MUST be the timestamp this message was received
+  - IF there are no other peers in the swarm
+    - return early
+  - Send `MsgConnect` randomly to `min(swarm.length, MsgConnect.peers)` peers
+    - IF the peer to receive the message has `.nat` of type `Hard`
+      - it MUST connect to peers with `.nat` type `Easy` OR peers with the same `.address` (peers on the same nat)
+    - IF peers is `0`, the sender of the `MsgJoin` joins the swarm but doesnt send any `MsgConnect`
+    - IF there are no other connectable peers
+      - Send a message of type `MsgError` and return
+        - `.id` MUST be to `MsgJoin.swarm`
+        - `.peers` MUST be set to the length of the swarm
+        - `.call` MUST be set to `join`
+    - For each peer, call this `.connect`
+      - call this `.connect` method
+        - the first arugment is the random PeerId
+        - the second argument is the new `PeerId
+        - the third argument is the `SwarmId`
+        - the fouth argument is this `.localPort`
+      - call this `.connect` method
+        - the first argument is the new `PeerId
+        - the second arugment is the random PeerId
+        - the third argument is the `SwarmId`
+        - the fouth argument is this `.localPort`
 
 ### Receive `MsgRelay`
 
-- TODO
+- A message of type `MsgRelay` is receved
+  - IF the object of type `Peer` exists in this `.peers` map
+    - call this `.send()` method
+      - the first argument must be set to `MsgRelay.content`
+      - the second argument muyst be set to the `Peer`
+      - the third argument must be set to the `Peer.output` or this `.localPort`
 
 ### Receive `MsgConnect`
 
@@ -449,6 +507,8 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - IF we have sent a packet within `CONNECTING_MAX_TIME` time, early return
     - IF we have sent or received a message within the `KEEP_ALIVE_TIMEOUT`
       - this peer will call .retryPing() to be sure it is already connected
+        - the first argument MUST be `Peer`
+        - the second argument MUST be `MsgConnect.timestamp`
   - IF `MsgConenct.address` is equal to this `.publicAddress` property
     - Both peers are on the same local network, send a `MsgRelay` containing a `MsgLocal` back to `MsgConnect.id`
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
@@ -458,7 +518,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
       - IF 1000 `MsgPing` messages have been sent
         - return and clear the interval (50% of the time 250 messages should be enough)
     - IF the targeted peer has an updated `PongState`, we have connected
-      - return and clear the inverval
+      - return and clear the interval
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
     - send 256 `MsgPing` with `MsgConnect`
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
@@ -466,7 +526,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 
 ### Receive `MsgTest`
 
-This message is received when an introducer sends a message to a peer's `Config.testPort` as the result of receving a `Ping`.
+This message is received when an introducer sends a message to a peer's `Config.testPort` as the result of receiving a `Ping`.
 
 #### Execution
 
