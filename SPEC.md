@@ -327,6 +327,7 @@ This section outlines the states of the program.
 - An instance of the Peer class is constructed
   - The UDP ports defined in `Config.localPort` and `Config.testPort` are bound
     - When a message is received it will dispatch the corresponding method
+      - TODO what message to call what method
   - An interval will poll for network interface changes
     - IF there is no `Config.keepAlive` specified in the config the function returns
     - An additional interval is started after `Config.keepAlive` and repeats every `Config.keepAlive` seconds
@@ -349,8 +350,6 @@ A router's routing table or firewall may drop "unsolicited" packets. So simply b
 2) The NAT supports/allows a port mapping protocol (uPnP/PMP/PCP).
 
 3) The inbound traffic looks like the response to some prior outbound traffic. This technique is also known as [hole-punching][W0] and involves something like a [STUN][W3] server.
-
-Port mapping protocols, hole-punching, brute force port scanning, and relay servers in concert will provide a reliable network where the majority of communication is peer-to-peer.
 
 | NAT Type | Description |
 | :---     | :---        |
@@ -421,6 +420,7 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
   - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
   - This peer's `recv` property is updated with a current timestamp
   - call this `.notify` method
+    - TODO set
 
 ### Receive `MsgPing`
 
@@ -502,29 +502,34 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 ### Receive `MsgConnect`
 
 - A message of type `MsgConnect` is received
-  - IF the message has a SwarmId
-    - call addPeer() using
+  - IF the message has a `SwarmId`
+    - call thi `.addPeer` method
+      - set TODO
   - IF there is a `Peer` with `MsgConnect.target` id in this `.peers` map property
     - IF the address is not the same assign the peer the address from the message and make the `PongState` null
     - IF we have sent a packet within `CONNECTING_MAX_TIME` time, then return
     - IF we have sent or received a message within the `KEEP_ALIVE_TIMEOUT`
-      - this peer will call .retryPing() to be sure it is already connected
+      - call this `.retryPing` method to be sure it is already connected
         - the first argument MUST be `Peer`
         - the second argument MUST be `MsgConnect.timestamp`
   - IF `MsgConenct.address` is equal to this `.publicAddress` property
     - Both peers are on the same local network, send a `MsgRelay` containing a `MsgLocal` back to `MsgConnect.id`
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
-    - call .retryPing() and then return
+    - call this `.retryPing` method and then return
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `Hard`
-    - Use this `.createInterval()` to send messages until we receive a message from the peer with `MsgConnect.id`.
+    - call this `.createInterval` method to send messages until we receive a message from the peer with `MsgConnect.id`.
       - IF 1000 `MsgPing` messages have been sent
         - clear the interval and then return (50% of the time 250 messages should be enough)
     - IF the targeted peer has an updated `PongState`, we have connected
       - clear the interval and then return
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
-    - send 256 `MsgPing` with `MsgConnect`
+    - send 256 `MsgPing`
+      - `.id` MUST be set to this `.id`
+      - `.nat` MUST be set to this `.nat`
+      - `.restart` MUST be set to this `.restart`
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
-    - call this `.localNetworkConennect()` method to attempt to connect via bluetooth, then mdns, etc.
+    - call this `.localNetworkConennect` method to attempt to connect via bluetooth, then mdns, etc.
+      - TODO set
 
 ### Receive `MsgTest`
 
