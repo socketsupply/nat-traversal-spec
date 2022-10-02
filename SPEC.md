@@ -4,7 +4,9 @@ Specify a minimal NAT traversal library for UDP.
 
 # Specification
 
-This specification includes essential constants, functions, and program states. This specification also targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating. It also delegates encryption and security responsibility to a higher level protocol or even the application layer, which allows for the broadest set of use cases.
+This specification includes essential constants, functions, and program states. This document tries to be concise, but if something isn't clear enough, please open an issue.
+
+This specification also targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating. It also delegates encryption and security responsibility to a higher level protocol or even the application layer, which allows for the broadest set of use cases.
 
 ## Constants
 
@@ -195,6 +197,7 @@ class Peer {
   PongState pong; // the state of the last pong
   map<PeerId, Peer*> peers; // a map of locally known peers
   map<SwarmId, Swarm*> swarms; // a map of locally known peers
+  vector<PeerId> connections; // an array of PeerId that
 
   void addPeer (ArgsAddPeer args);
   void connect (string fromId, string toId, string swarm, uint port);
