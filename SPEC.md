@@ -420,7 +420,7 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
   - The message properties are added to an object and placed in a locally stored list representing known peers
   - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
   - This peer's `recv` property is updated with a current timestamp
-  - TODO notify_peer?
+  - call this `.notify` method
 
 ### Receive `MsgPing`
 
@@ -443,9 +443,12 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 
 - A message of type `MsgIntro` is received
   - IF the both the IDs (`MsgIntro.target`) and (`MsgIntro.id`) are known locally
-    - call `Peer.connect`, specifying both `MsgIntro.target` and `MsgIntro.id`
-    - call `Peer.connect`, specifying both `MsgIntro.id` and `MsgIntro.target`
-  - ELSE respond with a message of type `ErrorIntro`
+    - call this `.connect` method, specifying both `MsgIntro.target` and `MsgIntro.id`
+    - call this `.connect` method, specifying both `MsgIntro.id` and `MsgIntro.target`
+  - ELSE respond with a message of type `Error`
+    - `.target` MUST be set to `MsgIntro.target`
+    - `.id` MUST be set to `MsgIntro.id`
+    - `.call` SHOULD be set to `connect`
 
 ### Receive `MsgLocal`
 
@@ -465,26 +468,25 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - `.output` MUST be set to this `.config.localPort`
     - `.reset` MUST be either `0` or this `.restart`
     - `.timestamp` MUST be the timestamp this message was received
-  - IF there are no other peers in the swarm
-    - return early
+  - IF there are no other peers in the swarm then return
   - Send `MsgConnect` randomly to `min(swarm.length, MsgConnect.peers)` peers
     - IF the peer to receive the message has `.nat` of type `Hard`
       - it MUST connect to peers with `.nat` type `Easy` OR peers with the same `.address` (peers on the same nat)
     - IF peers is `0`, the sender of the `MsgJoin` joins the swarm but doesnt send any `MsgConnect`
     - IF there are no other connectable peers
-      - Send a message of type `MsgError` and return
+      - Send a message of type `MsgError` and then return
         - `.id` MUST be to `MsgJoin.swarm`
         - `.peers` MUST be set to the length of the swarm
         - `.call` MUST be set to `join`
-    - For each peer, call this `.connect`
+    - For each peer
       - call this `.connect` method
         - the first arugment is the random PeerId
         - the second argument is the new `PeerId
         - the third argument is the `SwarmId`
         - the fouth argument is this `.localPort`
       - call this `.connect` method
-        - the first argument is the new `PeerId
-        - the second arugment is the random PeerId
+        - the first argument is the new `PeerId`
+        - the second arugment is the random `PeerId`
         - the third argument is the `SwarmId`
         - the fouth argument is this `.localPort`
 
@@ -504,7 +506,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - call addPeer() using
   - IF there is a `Peer` with `MsgConnect.target` id in this `.peers` map property
     - IF the address is not the same assign the peer the address from the message and make the `PongState` null
-    - IF we have sent a packet within `CONNECTING_MAX_TIME` time, early return
+    - IF we have sent a packet within `CONNECTING_MAX_TIME` time, then return
     - IF we have sent or received a message within the `KEEP_ALIVE_TIMEOUT`
       - this peer will call .retryPing() to be sure it is already connected
         - the first argument MUST be `Peer`
@@ -512,13 +514,13 @@ Received when a peer has asked another peer (or introducer) for an introduction.
   - IF `MsgConenct.address` is equal to this `.publicAddress` property
     - Both peers are on the same local network, send a `MsgRelay` containing a `MsgLocal` back to `MsgConnect.id`
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
-    - call .retryPing() and return
+    - call .retryPing() and then return
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `Hard`
     - Use this `.createInterval()` to send messages until we receive a message from the peer with `MsgConnect.id`.
       - IF 1000 `MsgPing` messages have been sent
-        - return and clear the interval (50% of the time 250 messages should be enough)
+        - clear the interval and then return (50% of the time 250 messages should be enough)
     - IF the targeted peer has an updated `PongState`, we have connected
-      - return and clear the interval
+      - clear the interval and then return
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
     - send 256 `MsgPing` with `MsgConnect`
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
