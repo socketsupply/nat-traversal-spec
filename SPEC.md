@@ -480,8 +480,8 @@ Received when a peer has asked another peer (or introducer) for an introduction.
         - `.call` MUST be set to `join`
     - For each peer
       - call this `.connect` method
-        - the first arugment is the random PeerId
-        - the second argument is the new `PeerId
+        - the first arugment is the random `PeerId`
+        - the second argument is the new `PeerId`
         - the third argument is the `SwarmId`
         - the fouth argument is this `.localPort`
       - call this `.connect` method
