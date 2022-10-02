@@ -4,7 +4,7 @@ Specify a minimal NAT traversal library for UDP.
 
 # Specification
 
-This implementation targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating. It also delegates encryption and security responsibility to a higher level protocol or even the application layer, which in many cases is preferred.
+This specification includes essential constants, functions, and program states. This specification also targets UDP. UDP is a [message-oriented][F0] [transport layer protocol][W1], ideal for talking to NATs because unlike TCP, it doesn't require a handshake to start communicating. It also delegates encryption and security responsibility to a higher level protocol or even the application layer, which allows for the broadest set of use cases.
 
 ## Constants
 
@@ -181,11 +181,12 @@ struct PongState {
 
 ## Classes
 
-A peer MUST, in some way, implement at least these methods and properties. Regardless of how you implement a peer, it is impossible to demonstrate the reliability of this solution when deployed. So it is necessary to specify a [TLA+][3] spec as well as run the code on top of a network simulation. Tests that demonstrate [`Safety`][0] and [`Liveness`][1] properties will need to override the `[init, onMessage, localAddress, timer, send]` methods and properties so that they can be run synchronously in a simulation.
+A peer MUST, in some way, implement at least these methods and properties. Regardless of how you implement a peer, it is impossible to demonstrate the reliability of this solution when deployed. So it is necessary to specify a [TLA+][3] spec as well as run the code on top of a network simulation. Tests that demonstrate [`Safety`][0] and [`Liveness`][1] properties will need to override the `[init, onMessage, localAddress, createInterval, send]` methods and properties so that they can be run synchronously in a simulation.
 
 ```c
 class Peer {
   bool isIntroducer = false; // set to true if peer has a static IP address
+  bool notified = false; // ensure a peer is only notified once about another peer being added
   string localAddress; // deteremind by checking the network interfaces
   uint localPort; // set in the configuration
   string publicAddress; // set when a pong is received
@@ -193,6 +194,7 @@ class Peer {
   NatType nat; // this peer's NatType
   PongState pong; // the state of the last pong
   map<PeerId, Peer*> peers; // a map of locally known peers
+  map<SwarmId, Swarm*> swarms; // a map of locally known peers
 
   void addPeer (ArgsAddPeer args);
   void connect (string fromId, string toId, string swarm, uint port);
@@ -202,14 +204,17 @@ class Peer {
   void requestNat (ArgsRequestNat args);
   void init (uint timestamp);
   void intro (ArgsIntro args);
-  void onIntro (ArgsMessage args);
+  void localNetworkConnect ();
+  void onMsgIntro (ArgsMessage args);
+  void onMsgJoin (ArgsMessage args);
   void onMessage (Any data, string address, uint port, uint timestamp);
-  void onPing (ArgsMessage args);
-  void onPong (ArgsMessage args);
+  void onMsgPing (ArgsMessage args);
+  void onMsgPong (ArgsMessage args);
   void onTest (ArgsMessage args);
+  void onWakeup (uint timestamp);
   void ping (ArgsPing args);
   void retryPing (PeerId id, PeerAddress address);
-  void timer (uint delay, uint repeat, function<void(uint timestamp)> cb);
+  void createInterval (uint delay, uint repeat, function<void(uint timestamp)> cb);
 };
 ```
 
@@ -313,7 +318,9 @@ This section outlines the states of the program.
       - If `currentTime` - `lastPongReceived` > `keepalive` * `1.5`, the peer is Inactive
       - Otherwise the peer is considered Active
     - IF there is an interface change, the NAT type is re-evaluated and the function returns
-    - IF the time ellapsed is greater than a single cycle of the interval, a wakeup event is emitted
+    - IF the time ellapsed is greater than a single cycle of the interval
+      - FOR every peer in this `.peers` map, send `MsgPing`
+      - FOR every swarm in this `.swarms` map, send `MsgJoin`
     - The NAT type is not well defined, it is re-evaluated
 
 ### NAT Evaluation
@@ -433,7 +440,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 
 - A message of type `MsgConnect` is received
   - IF the message has a SwarmId
-    - TODO
+    - call addPeer() using
   - IF there is a `Peer` with `MsgConnect.target` id in this `.peers` map property
     - IF the address is not the same assign the peer the address from the message and make the `PongState` null
     - IF we have sent a packet within `CONNECTING_MAX_TIME` time, early return
@@ -444,14 +451,15 @@ Received when a peer has asked another peer (or introducer) for an introduction.
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
     - call .retryPing() and return
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `Hard`
-    - An interval is started that sends messages until we receive a message from the peer with `MsgConnect.id`.
+    - Use this `.createInterval()` to send messages until we receive a message from the peer with `MsgConnect.id`.
       - IF 1000 `MsgPing` messages have been sent
-        - return and clear the timer (50% of the time 250 messages should be enough)
+        - return and clear the interval (50% of the time 250 messages should be enough)
     - IF the targeted peer has an updated `PongState`, we have connected
-      - return and clear the timer
+      - return and clear the inverval
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
     - send 256 `MsgPing` with `MsgConnect`
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
+    - call this `.localNetworkConennect()` method to attempt to connect via bluetooth, then mdns, etc.
 
 ### Receive `MsgTest`
 
