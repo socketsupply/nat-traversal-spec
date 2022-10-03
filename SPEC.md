@@ -520,7 +520,7 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - It is also recommended to send these `MsgPing` packets from a quick internal. This gives time for response messages `MsgPong` to travel back. If a `MsgPong` is received from `MsgConnect.target` then stop. If more than 1000 packets have been sent, then stop.
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
     commence the _hard_ side of a birthday paradox connection (BDP).
-    - send 256 `MsgPing` **from** _unique random ports_ to `MsgConnect.port`. Note this means binding 256 ports. The peer may reuse the same ports for other BDP connections. These packets should be sent immediately without waiting. These packets are necessary to open the firewall for the easy side, and the more there are, the more "landing space" packets from the other side will have.   
+    - send 256 `MsgPing` **from** _unique random ports_ to `MsgConnect.port`. Note this means binding 256 ports. The peer may reuse the same ports for other BDP connections. These packets should be sent immediately without waiting. These outgoing packets will open ports in our firewall, so that packets from the easy side can come through. The nat will remap all these ports. A hard nat assigns new ports for each address, so it does not work to simply send to a port that another address has observed. Instead, the peer must try to guess a port, but open many ports to make that easier.
     - send 256 `MsgPing`
       - `.id` MUST be set to this `.id`
       - `.nat` MUST be set to this `.nat`
