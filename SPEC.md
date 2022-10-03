@@ -442,13 +442,25 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 #### Execution
 
 - A message of type `MsgIntro` is received
+  - If the `MsgIntro.target` peer is not known, respond with `MsgIntroError`
+    - `id` should be set to our `.config.id`
+    - `target` should be `MsgIntro.target`
+    - call should be `'intro'`
   - IF the both the IDs (`MsgIntro.target`) and (`MsgIntro.id`) are known locally
-    - call this `.connect` method, specifying both `MsgIntro.target` and `MsgIntro.id`
-    - call this `.connect` method, specifying both `MsgIntro.id` and `MsgIntro.target`
-  - ELSE respond with a message of type `Error`
-    - `.target` MUST be set to `MsgIntro.target`
-    - `.id` MUST be set to `MsgIntro.id`
-    - `.call` SHOULD be set to `connect`
+    let `p` be the peer with `id == MsgIntro.target`
+    let `s` be the sender of the `MsgIntro`
+    - send a `MsgConnect` back to the `MsgIntro` sender
+      - `.id` to our `.config.id`
+      - `.target` to `p.target`
+      - `.address` to `p.address`
+      - `.port` to `p.port`
+      - `.nat` to `p.nat`
+    - send a `MsgConnect` to `p`
+      - `.id` to our `.config.id`
+      - `.target` to `s.id`
+      - `.address` to `s.address`
+      - `.port` to `s.port`
+      - `.nat` to `s.nat`
 
 ### Receive `MsgLocal`
 
