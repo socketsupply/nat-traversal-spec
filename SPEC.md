@@ -533,10 +533,6 @@ Received when a peer has asked another peer (or introducer) for an introduction.
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
     commence the _hard_ side of a birthday paradox connection (BDP).
     - send 256 `MsgPing` **from** _unique random ports_ to `MsgConnect.port`. Note this means binding 256 ports. The peer may reuse the same ports for other BDP connections. These packets should be sent immediately without waiting. These outgoing packets will open ports in our firewall, so that packets from the easy side can come through. The nat will remap all these ports. A hard nat assigns new ports for each address, so it does not work to simply send to a port that another address has observed. Instead, the peer must try to guess a port, but open many ports to make that easier.
-    - send 256 `MsgPing`
-      - `.id` MUST be set to this `.id`
-      - `.nat` MUST be set to this `.nat`
-      - `.restart` MUST be set to this `.restart`
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
     Unable create a connection via nat traversal.
     In future versions of this spec, it may be possible to connect peers in this situation by relaying through another peer with an `easy` or `static` nat.
