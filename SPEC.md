@@ -460,35 +460,33 @@ Received when a peer has asked another peer (or introducer) for an introduction.
 - A message of type `MsgJoin` is received
   - The object with the `SwarmId`, `MsgJoin.swarm` is found on this `.swarms` property OR it is created
   - The object is an associative array where the key is the `SwarmId` and the value is the timestamp that this message was received
-  - A new peer is added to this `.peers` map property by calling this `.addPeer` method
+  - The sender peer must be updated by calling this `.addPeer` method
     - `.id` MUST be set to the `MsgJoin.id` property
     - `.address` MUST be set to the `.address` property of the rinfo
     - `.port` MUST be set to the `.port` property of the rinfo
     - `.nat` MUST be set to `MsgJoin.nat`
-    - `.output` MUST be set to this `.config.localPort`
-    - `.reset` MUST be either `0` or this `.restart`
+    - `.outport` MUST be set to this the port this message was received on. (this may differ from `.config.localPort` if this is BDP connection.
+    - `.reset` MUST be set to`.restart`
     - `.timestamp` MUST be the timestamp this message was received
-  - IF there are no other peers in the swarm then return
+  - IF there are no other peers in the swarm then respond with a `MsgJoinError` and return
+      - `.id` MUST be set to '.config.id`
+      - `.swarm` must be `MsgJoin.swarm`
+      - `.peers` MUST be set the number of peers in the swarm (including `MsgJoin` sender)
+      - `.call` MUST be set to `join`
+  - Next, randomly select peers for the sender of the `MsgJoin` to connect to.
+    - Take the list of peers in the swarm, but remove the sender of `MsgConnect`
+    - Sort the list randomly.
+    - If `MsgConnect.nat` is `hard` then remove peers with hard nat from the list, unless they have the same address as `MsgJoin` sender (note, this would mean they are connected to the same wifi, and may then connect locally)
+    - Take the first `MsgConnect.peers` from the list and discard the rest (unless there are less than `MsgConnect.peers` in the list, then take the whole list)
+    - for each peer `p` in the list,
+      - send a `MsgConnect` to `p` with `target` set to `MsgJoin` sender's`id`, `address`, `port` and `nat`, and `swarm`
+      - send a `MsgConnect` back to the `MsgJoin` sender, with `target` set to `p`'s `id`, `address`, `port` and `nat`, and `swarm`.
+
   - Send `MsgConnect` randomly to `min(swarm.length, MsgConnect.peers)` peers
     - IF the peer to receive the message has `.nat` of type `Hard`
       - it MUST connect to peers with `.nat` type `Easy` OR peers with the same `.address` (peers on the same nat)
     - IF peers is `0`, the sender of the `MsgJoin` joins the swarm but doesnt send any `MsgConnect`
     - IF there are no other connectable peers
-      - Send a message of type `MsgError` and then return
-        - `.id` MUST be to `MsgJoin.swarm`
-        - `.peers` MUST be set to the length of the swarm
-        - `.call` MUST be set to `join`
-    - For each peer
-      - call this `.connect` method
-        - the first arugment is the random `PeerId`
-        - the second argument is the new `PeerId`
-        - the third argument is the `SwarmId`
-        - the fouth argument is this `.localPort`
-      - call this `.connect` method
-        - the first argument is the new `PeerId`
-        - the second arugment is the random `PeerId`
-        - the third argument is the `SwarmId`
-        - the fouth argument is this `.localPort`
 
 ### Receive `MsgRelay`
 
