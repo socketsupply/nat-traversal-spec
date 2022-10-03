@@ -517,19 +517,19 @@ Received when a peer has asked another peer (or introducer) for an introduction.
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `easy` OR `MsgConnect.nat` is `Satitc`
     - call this `.retryPing` method and then return
   - IF this `.nat` is `Easy` AND `MsgConnect.nat` is `Hard`
-    - call this `.createInterval` method to send messages until we receive a message from the peer with `MsgConnect.id`.
-      - IF 1000 `MsgPing` messages have been sent
-        - clear the interval and then return (50% of the time 250 messages should be enough)
-    - IF the targeted peer has an updated `PongState`, we have connected
-      - clear the interval and then return
+    Commence "easy" side of a birthday paradox connection.
+    - send many `MsgPing` messages from our main port **to** _unique random ports_ at `MsgConnect.address`. (disregard the `MsgConnect.port`). On average it will take about 250 packets to get through. Sometimes it will be less, sometimes more. Sending only 250 packets would mean that the connection succeeds 50% of the time, so it is recommended to send at least 1000 packets, which will have a 97% success rate. It is recommended to give up after that, in case the other peer was actually down or didn't try to connect.
+    - It is also recommended to send these `MsgPing` packets from a quick internal. This gives time for response messages `MsgPong` to travel back. If a `MsgPong` is received from `MsgConnect.target` then stop. If more than 1000 packets have been sent, then stop.
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Easy`
+    commence the _hard_ side of a birthday paradox connection (BDP).
+    - send 256 `MsgPing` **from** _unique random ports_ to `MsgConnect.port`. Note this means binding 256 ports. The peer may reuse the same ports for other BDP connections. These packets should be sent immediately without waiting. These packets are necessary to open the firewall for the easy side, and the more there are, the more "landing space" packets from the other side will have.   
     - send 256 `MsgPing`
       - `.id` MUST be set to this `.id`
       - `.nat` MUST be set to this `.nat`
       - `.restart` MUST be set to this `.restart`
   - IF this `.nat` is `Hard` AND `MsgConnect.nat` is `Hard`
-    - call this `.localNetworkConennect` method to attempt to connect via bluetooth, then mdns, etc.
-      - TODO set
+    Unable create a connection via nat traversal.
+    In future versions of this spec, it may be possible to connect peers in this situation by relaying through another peer with an `easy` or `static` nat.
 
 ### Receive `MsgTest`
 
