@@ -316,9 +316,14 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
 - Finally, `P0` must calculate the nat type based on the data collected so far
 
 
+To guard against dropped packets, peers should retry the nat detection process every second until they know their nat.
+
+
 ### `MsgPing`
 
 Sent as a "request" for a `MsgPong` message.
+The other peer is expected to respond with a `MsgPong`.
+If they do not respond promptly, they are considered to be down.
 
 ```c
 struct MsgPing {
@@ -421,6 +426,10 @@ struct MsgLocal {
 - Call the `.retryPing` method to send a `MsgPing` to the peer with `MsgLocal.id`
 
 ### `MsgJoin`
+
+A `MsgJoin` is sent to request to join a swarm. The remote peer will respond with several `MsgConnect` for some other random peers that they know in the swarm, or a `MsgJoinError`
+
+The sender should actively maintain their membership in the swarm. They should try to maintain an active connection to at least 3 other peers in the swarm. If their number of connections is less than 3, they should attempt to rejoin the swarm every `config.keepAlive` interval.
 
 ```c
 struct MsgJoin {
