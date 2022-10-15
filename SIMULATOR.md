@@ -61,9 +61,14 @@ A network is a derivative of Node, and has a map of `subnet` of type Address->No
 
 `remove(node)` remove node from the network's address map.
 
+`send(msg, addr, from_port, source_node)` send a message `msg` from `from_port` on `source_node` to `addr`. First, lookup `addr.address` in the address map - if there is a Node at this address in the map, the destination is another peer in the local network. If not, it must be a public address in the public network. In `Network` this is simply considered an error, but the situation is handled in `Nat`.
+
 ## Nat
 
 derivative of Network used as a base to model Network Address Translation
+
+A Nat instance must have a policy for keying a port mapping. `getKey(dest, source)`
+and a policy for selecting a port to allocate. This may just be random, or it might be sequential. (Sometimes it is difficult to see what port selection policy a NAT is using, so if a p2p system works with random ports then it will work with sequential ports.)
 
 adds {TTL, map, unmap, hairpinning} properties to Network.
 `TTL` is a the number of miliseconds before an entry in the firewall should be expired.
@@ -71,3 +76,11 @@ adds {TTL, map, unmap, hairpinning} properties to Network.
 `unmap` is the reverse of map.
 `hairpininng` is a boolean, if true, messages from internal nodes may address the public address of the network and they will be delivered to another internal node based on the port. (this behaviour is not usually supported most real world nats)
 
+ip addresses are 4 bytes, and ports are 2 bytes. This gives 4 billion ip addresses, and 65 thousands ports per address. 4 billion isn't enough to easily assign addresses uniquely to every device. However, 65 thousand ports per address is quite a lot so a network router can share it's address by remapping ports. When a Node on a local network sends a new message to the outside network, the router remembers the local address and port, selects a new external port, and maps that external port to that local address.
+
+Different NATs use different algorithms for assigning ports, and this effects likelyhood of that Nat running out of ports, and also the ability of Nodes to establish p2p connections on that nat. For example, if a NAT assigns a port to a local address:port combination, irrespective of the remote address the Node is sending to, then p2p connections are easy, but the Nat can only do this 65,536 times before running out of ports (see IndependentNat). If the NAT assigns a port based on both the local address:port _and_ the destination port, then it's possible for the nat to reuse the same port for different Nodes to communicate with different remote servers (see DependantNat)
+
+`send(msg, addr, from_port, source_node)` as in Network, the destination is checked if it's part of the local network and delivery is scheduled. If it is not local, a new port is assigned, using the NAT's specific keying policy: `key = getKey(addr, {address: source_node.address, port: from_port}); port = getPort(); map[key] = port; unmap[port] = {address: source_node.address, port: from_port}`. When delivering local messages to external Nodes, the source port is mapped, but the external destination port remains the same.
+
+When the NAT receives a message, it uses the `unmap` table to figure out what local address to send it to. `dest = unmap[port]` if the dest is undefined, the message is dropped.
+Otherwise, a delivery of the message is scheduled to the port used by the local Node. When delivering external messages to local nodes, the destination port is unmapped, but the source port remains the same.
