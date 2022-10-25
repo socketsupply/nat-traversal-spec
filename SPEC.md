@@ -222,107 +222,11 @@ class Peer {
 };
 ```
 
-## Messages
-
-### `MsgConnect`
-
-```c
-struct MsgConnect {
-  string type = "connect";
-  PeerId id; // the introducer's id. The id in the message is always the sender's id.
-  PeerId target; // the id of the peer to connect to
-  string address; // the address of the target
-  NatType nat; // the nat of the target
-  uint16_t port; // the port of the target
-  SwarmId swarm; // optional
-};
-```
-
-### `MsgJoin`
-
-```c
-struct MsgJoin {
-  string type = "join";
-  PeerId id; // the id of the sender
-  SwarmId swarm; // the id of the swarm
-  NatType nat; // the nat typeo of the sender
-  uint peers; // the numner of peers in the swarm that the peer knows about
-};
-```
-
-### `MsgLocal`
-
-Sent to establish a connection to another peer on the local network.
-
-```c
-struct MsgLocal {
-  string type = "local"; // the type of the message
-  PeerId id; // the unique id of the sending-peer
-  string address; // this local address
-  uint16_t port; // this local port
-};
-```
-
-### `MsgPing`
-
-Generally sent as a "request" for a `MsgPong` message.
-
-```c
-struct MsgPing {
-  string type = "ping"; // the type of the message
-  PeerId id; // the unique id of the sending-peer
-  NatType nat;
-  uint restart; // a unix timestamp specifying uptime of the sending-peer
-};
-```
-
-### `MsgPong`
-
-Generally sent as a "response" to a `MsgPing` message.
-
-```c
-struct MsgPong {
-  string type = "pong"; // the type of the message
-  PeerId id; // the unique id of the sending-peer
-  string address; // a string representation of the ip address of the sending-peer
-  uint port; // a numeric representation of the port of the sending-peer
-  NatType nat;
-  uint restart; // a unix timestamp specifying uptime of the sending-peer
-  uint timestamp; a unix timestamp specifying the time the ping message was received
-};
-```
-
-### `MsgRelay`
-
-```c
-struct MsgRelay {
-  string type = "relay";
-  PeerId target; // the id of the peer we want to connect to
-  Any content; // most likely a message of any type
-};
-```
-
-### `MsgTest`
-
-Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
-
-```c
-struct MsgTest {
-  string type = "test"; // the type of the message
-  PeerId id; // the unique id of the sending-peer
-  string address; // a string representation of the ip address of the sending-peer
-  uint port; // a numeric representation of the port of the sending-peer
-  NatType nat;
-};
-```
-
 ## States
 
 This section outlines the states of the program.
 
 ### Initial
-
-#### Execution
 
 - An instance of the Peer class is constructed
   - The UDP ports defined in `Config.localPort` and `Config.testPort` are bound
@@ -341,7 +245,7 @@ This section outlines the states of the program.
       - FOR every swarm in this `.swarms` map, send `MsgJoin`
     - The NAT type is not well defined, it is re-evaluated
 
-### NAT Evaluation
+### NAT Detection
 
 A router's routing table or firewall may drop "unsolicited" packets. So simply binding a port and waiting for connections won't work. However, a router (even one with a firewall) can be coerced into accepting packets in a perfectly safe way. There are 3 conditions where a NAT (and Firewall) will allow inbound traffic.
 
@@ -411,20 +315,21 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
   - IF `P0` receives a message on `Config.testPort` we know that our NAT type is Static
 - Finally, `P0` must calculate the nat type based on the data collected so far
 
-### Receive `MsgPong`
 
-#### Execution
+### `MsgPing`
 
-- A message of type `MsgPong` is received
-  - The message properties are added to an object and placed in a locally stored list representing known peers
-  - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
-  - This `.recv` is updated with a current timestamp
-  - call this `.notify` method
-    - TODO set
+Sent as a "request" for a `MsgPong` message.
 
-### Receive `MsgPing`
+```c
+struct MsgPing {
+  string type = "ping"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  NatType nat;
+  uint restart; // a unix timestamp specifying uptime of the sending-peer
+};
+```
 
-#### Execution
+#### Receive `MsgPing`
 
 - A message of type `MsgPing` is received
   - Respond with a message of type `MsgPong`
@@ -435,11 +340,47 @@ In the next phase, the NAT type needs to be discovered. This requires a peer (`P
     - `.restart` MUST be set to this `.restart` property
     - `.ts` MUST be set to the timestamp that the message was received
 
-### Receive `MsgIntro`
+### `MsgPong`
 
-Received when a peer has asked another peer (or introducer) for an introduction.
+Sent as a "response" to a `MsgPing` message.
 
-#### Execution
+```c
+struct MsgPong {
+  string type = "pong"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  string address; // a string representation of the ip address of the sending-peer
+  uint port; // a numeric representation of the port of the sending-peer
+  NatType nat;
+  uint restart; // a unix timestamp specifying uptime of the sending-peer
+  uint timestamp; a unix timestamp specifying the time the ping message was received
+};
+```
+
+#### Receive `MsgPong`
+
+- A message of type `MsgPong` is received
+  - The message properties are added to an object and placed in a locally stored list representing known peers
+  - The local properties `Peer.pong.timestamp`, `Peer.pong.address` and `Peer.pong.port` are updated using the data received
+  - This `.recv` is updated with a current timestamp
+  - call this `.notify` method
+    - TODO set
+
+
+### `MsgIntro`
+
+Sent to request an introduction to a target peer
+
+```c
+struct MsgIntro {
+  string type = "intro"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  PeerId target; // the unique id of the sending-peer
+  NatType nat; //nat of the sender
+  SwarmId swarm; //optional swarm 
+};
+```
+
+#### Receive `MsgIntro`
 
 - A message of type `MsgIntro` is received
   - If the `MsgIntro.target` peer is not known, respond with `MsgIntroError`
@@ -462,12 +403,36 @@ Received when a peer has asked another peer (or introducer) for an introduction.
       - `.port` to `s.port`
       - `.nat` to `s.nat`
 
-### Receive `MsgLocal`
+### `MsgLocal`
+
+Sent to establish a connection to another peer on the local network.
+
+```c
+struct MsgLocal {
+  string type = "local"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  string address; // this local address
+  uint16_t port; // this local port
+};
+```
+
+#### Receive `MsgLocal`
 
 - Call the `.retryPing` method to send a `MsgPing` to the peer with `MsgLocal.id`
 
+### `MsgJoin`
 
-### Receive `MsgJoin`
+```c
+struct MsgJoin {
+  string type = "join";
+  PeerId id; // the id of the sender
+  SwarmId swarm; // the id of the swarm
+  NatType nat; // the nat typeo of the sender
+  uint peers; // the numner of peers in the swarm that the peer knows about
+};
+```
+
+#### Receive `MsgJoin`
 
 - A message of type `MsgJoin` is received
   - The object with the `SwarmId`, `MsgJoin.swarm` is found on this `.swarms` property OR it is created
@@ -500,7 +465,17 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     - IF peers is `0`, the sender of the `MsgJoin` joins the swarm but doesnt send any `MsgConnect`
     - IF there are no other connectable peers
 
-### Receive `MsgRelay`
+### `MsgRelay`
+
+```c
+struct MsgRelay {
+  string type = "relay";
+  PeerId target; // the id of the peer we want to connect to
+  Any content; // most likely a message of any type
+};
+```
+
+#### Receive `MsgRelay`
 
 - A message of type `MsgRelay` is receved
   - IF the object of type `Peer` exists in this `.peers` map
@@ -509,7 +484,21 @@ Received when a peer has asked another peer (or introducer) for an introduction.
       - the second argument muyst be set to the `Peer`
       - the third argument must be set to the `Peer.output` or this `.localPort`
 
-### Receive `MsgConnect`
+### `MsgConnect`
+
+```c
+struct MsgConnect {
+  string type = "connect";
+  PeerId id; // the introducer's id. The id in the message is always the sender's id.
+  PeerId target; // the id of the peer to connect to
+  string address; // the address of the target
+  NatType nat; // the nat of the target
+  uint16_t port; // the port of the target
+  SwarmId swarm; // optional
+};
+```
+
+#### Receive `MsgConnect`
 
 - A message of type `MsgConnect` is received
   - IF the message has a `SwarmId`
@@ -537,11 +526,26 @@ Received when a peer has asked another peer (or introducer) for an introduction.
     Unable create a connection via nat traversal.
     In future versions of this spec, it may be possible to connect peers in this situation by relaying through another peer with an `easy` or `static` nat.
 
-### Receive `MsgTest`
+
+### `MsgTest`
+
+Sent to the `Config.testPort` of a peer as a response to a `MsgPing` message.
+
+```c
+struct MsgTest {
+  string type = "test"; // the type of the message
+  PeerId id; // the unique id of the sending-peer
+  string address; // a string representation of the ip address of the sending-peer
+  uint port; // a numeric representation of the port of the sending-peer
+  NatType nat;
+};
+```
+
+
+#### Receive `MsgTest`
 
 This message is received when an introducer sends a message to a peer's `Config.testPort` as the result of receiving a `Ping`.
 
-#### Execution
 
 - A message of type `MsgPing` is received
   - update the local `PongState` property
